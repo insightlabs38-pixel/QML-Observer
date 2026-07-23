@@ -5,16 +5,14 @@ Milestone 2 (Volume III): Issue #11 ("Implement QMLMonitor"), Issue #13
 reset/finalization"). Issue #12 (rolling state) is in `core/state.py` and
 Issue #14 (run IDs) is in `core/run.py`; both are used here.
 
-Scope note: `detectors` and `policy` are accepted per the blueprint's
-constructor signature (Volume III) for forward compatibility, but the
-statistics engine (Milestone 3), detector implementations, and the
-`DiagnosisEngine` (Milestone 4) do not exist yet. Until then, `update()` and
-`finish()` always return an `INSUFFICIENT_EVIDENCE` placeholder diagnosis via
-`_default_diagnosis()` -- there is simply no detection logic to run yet. This
-keeps the milestone 2 goal ("a manually instrumented QML training loop
-works") honest: this class proves the event/lifecycle plumbing, not
-detection quality. `_evaluate()` is the single seam Milestone 4 will replace
-with real `DiagnosisEngine` delegation, without touching lifecycle code.
+Milestone 4 update: `detectors` is now wired to a real `DiagnosisEngine`
+(Issue #29). When no detectors are configured, `update()`/`finish()` still
+return the `INSUFFICIENT_EVIDENCE` placeholder via `_default_diagnosis()`
+exactly as in Milestone 2/3 -- an empty monitor proves the event/lifecycle
+plumbing only. `_evaluate()` remains the single seam: it now delegates to
+`DiagnosisEngine.evaluate()` whenever `detectors` is non-empty, without any
+other change to lifecycle code. The `ActionPolicy` engine referenced by
+`policy` still ships in Milestone 5.
 
 Failure semantics (addendum §1, "Fail-open with transparency"): any
 exception raised while processing a step's data (schema validation,
@@ -39,6 +37,8 @@ from typing import Any, Literal, TypeVar
 from qml_observer.core.events import StepObservation
 from qml_observer.core.run import generate_run_id, validate_run_id
 from qml_observer.core.state import RunState
+from qml_observer.detectors.base import BaseDetector
+from qml_observer.diagnosis.engine import DiagnosisEngine
 from qml_observer.schemas.circuit import CircuitMetadata
 from qml_observer.schemas.diagnosis import DiagnosisResult, IssueType
 from qml_observer.schemas.gradient import summarize_gradient
@@ -77,7 +77,7 @@ class QMLMonitor:
 
     def __init__(
         self,
-        detectors: list[Any] | None = None,
+        detectors: list[BaseDetector] | None = None,
         policy: str = "warn",
         window_size: int = 100,
         run_id: str | None = None,
@@ -87,9 +87,11 @@ class QMLMonitor:
         """Create a monitor for a new run.
 
         Args:
-            detectors: Reserved for the Milestone 4 diagnosis engine.
-                Accepted now for forward API compatibility; has no effect
-                yet (see module docstring scope note).
+            detectors: `BaseDetector` instances to run each step (e.g.
+                `BarrenPlateauDetector`, `StagnationDetector`,
+                `ConvergenceDetector`). If omitted or empty, `update()`/
+                `finish()` return the `INSUFFICIENT_EVIDENCE` placeholder
+                diagnosis, exactly as before Milestone 4.
             policy: Action policy mode. One of "log", "warn", "pause",
                 "stop", "adaptive". The full `ActionPolicy` engine ships in
                 Milestone 5; today this only affects `should_stop()`'s
@@ -110,6 +112,7 @@ class QMLMonitor:
         Raises:
             ValueError: If `policy` is not a recognized mode, `window_size`
                 is not a positive int, or `planned_steps` is negative.
+            TypeError: If any element of `detectors` is not a `BaseDetector`.
         """
         if policy not in _VALID_POLICIES:
             raise ValueError(f"policy must be one of {sorted(_VALID_POLICIES)}, got {policy!r}")
@@ -124,6 +127,10 @@ class QMLMonitor:
         resolved_run_id = validate_run_id(run_id) if run_id is not None else generate_run_id()
 
         self._detectors = list(detectors) if detectors else []
+        for i, d in enumerate(self._detectors):
+            if not isinstance(d, BaseDetector):
+                raise TypeError(f"detectors[{i}] must be a BaseDetector, got {type(d)!r}")
+        self._diagnosis_engine = DiagnosisEngine(self._detectors) if self._detectors else None
         self._policy = policy
         self._window_size = window_size
         self._planned_steps = planned_steps
@@ -336,6 +343,8 @@ class QMLMonitor:
         self._state.run_id = new_run_id
         self._state.reset()
         self._last_perf_time = None
+        if self._diagnosis_engine is not None:
+            self._diagnosis_engine.reset()
 
     # -- diagnosis access -------------------------------------------------
 
@@ -361,12 +370,15 @@ class QMLMonitor:
     def _evaluate(self) -> DiagnosisResult:
         """Produce a diagnosis from current state.
 
-        Milestone 4 seam: this will delegate to
-        `DiagnosisEngine(self._detectors).evaluate(...)` once the
-        statistics engine and detectors exist. For now it always returns
-        the placeholder diagnosis.
+        Delegates to `DiagnosisEngine.evaluate()` when one or more
+        detectors are configured; otherwise returns the
+        `INSUFFICIENT_EVIDENCE` placeholder (no detection logic to run).
         """
-        return self._default_diagnosis()
+        if self._diagnosis_engine is None:
+            return self._default_diagnosis()
+        observation = self._state.latest_observation
+        assert observation is not None  # _evaluate is only called after a record()
+        return self._diagnosis_engine.evaluate(observation, self._state)
 
     def _default_diagnosis(self) -> DiagnosisResult:
         return DiagnosisResult(
