@@ -38,3 +38,17 @@ it reaches `0.1.0`.
   into a single, explainable `DiagnosisResult`, with `CONVERGED` given
   explicit priority over other simultaneously-triggered issues; wired into
   `QMLMonitor._evaluate()` (Milestone 4, Issue #29).
+- `qml_observer.diagnosis.scoring.combine_detector_results`: standalone,
+  reusable confidence-combination primitive extracted out of
+  `DiagnosisEngine`, with weighted noisy-OR combination across detectors
+  that agree on the same issue (Milestone 4, Issue #30).
+- `qml_observer.diagnosis.explanations.explain`: renders a `DiagnosisResult`
+  as a human-readable, multi-line explanation (headline, confidence,
+  degraded-mode banner, evidence, recommendations) for CLI/report/alert
+  consumers (Milestone 4, Issue #31).
+- `tests/fixtures/synthetic_runs.py`: five seeded synthetic training-run
+  generators (healthy learning, convergence, artificial plateau,
+  noise-dominated, stagnant optimizer) covering plan.md §15's benchmark
+  categories, plus validation tests confirming each detector/diagnosis
+  combination classifies every scenario correctly and does not
+  false-positive on noise alone (Milestone 4, Issue #32).
