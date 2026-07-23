@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 
 from qml_observer.core.monitor import QMLMonitor
+from qml_observer.detectors.barren_plateau import BarrenPlateauDetector
+from qml_observer.detectors.convergence import ConvergenceDetector
 from qml_observer.schemas.diagnosis import DiagnosisResult, IssueType
 
 
@@ -36,6 +38,10 @@ class TestConstruction:
     def test_empty_run_id_raises(self):
         with pytest.raises(ValueError):
             QMLMonitor(run_id="")
+
+    def test_non_detector_in_detectors_raises(self):
+        with pytest.raises(TypeError):
+            QMLMonitor(detectors=[object()])
 
 
 class TestLifecycleBasics:
@@ -366,3 +372,61 @@ class TestReporterHooks:
         assert diagnosis.degraded is True
         # finish()'s reporter failures are caught separately and don't raise.
         monitor.finish()
+
+
+class TestDiagnosisEngineWiring:
+    """Milestone 4 (Issue #29): _evaluate() delegates to a real DiagnosisEngine."""
+
+    def test_no_detectors_still_returns_insufficient_evidence_placeholder(self):
+        monitor = QMLMonitor()
+        result = monitor.update(step=0, loss=1.0)
+        assert result.issue == IssueType.INSUFFICIENT_EVIDENCE
+
+    def test_configured_detector_drives_real_diagnosis(self):
+        monitor = QMLMonitor(
+            detectors=[
+                BarrenPlateauDetector(
+                    gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=10
+                )
+            ],
+            policy="stop",
+        )
+        rng = np.random.default_rng(0)
+        result = None
+        for step in range(20):
+            result = monitor.update(
+                step=step, loss=0.8 + rng.normal(0, 1e-8), gradients=rng.normal(0, 1e-6, size=8)
+            )
+        assert result.issue == IssueType.POSSIBLE_BARREN_PLATEAU
+        assert result.severity == "critical"
+        assert monitor.should_stop() is True
+
+    def test_reset_clears_detector_state_too(self):
+        detector = BarrenPlateauDetector(
+            gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=3
+        )
+        monitor = QMLMonitor(detectors=[detector])
+        rng = np.random.default_rng(1)
+        for step in range(10):
+            monitor.update(step=step, loss=0.8, gradients=rng.normal(0, 1e-6, size=4))
+        monitor.reset()
+        result = monitor.update(step=0, loss=0.8, gradients=rng.normal(0, 1e-6, size=4))
+        # Fresh detector state: persistence hasn't rebuilt yet, so it can't
+        # have triggered from only a single post-reset step.
+        assert result.issue != IssueType.POSSIBLE_BARREN_PLATEAU
+
+    def test_convergence_and_barren_plateau_do_not_conflict(self):
+        monitor = QMLMonitor(
+            detectors=[
+                BarrenPlateauDetector(
+                    gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=10
+                ),
+                ConvergenceDetector(loss_threshold=0.05, gradient_threshold=1e-3, patience=10),
+            ]
+        )
+        rng = np.random.default_rng(2)
+        result = None
+        for step in range(30):
+            result = monitor.update(step=step, loss=0.001, gradients=rng.normal(0, 1e-6, size=8))
+        assert result.issue == IssueType.CONVERGED
+        assert result.severity == "info"
