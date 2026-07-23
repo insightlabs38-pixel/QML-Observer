@@ -19,3 +19,8 @@ it reaches `0.1.0`.
   #18-#20).
 - `qml_observer.statistics.loss`: `loss_slope`, `relative_loss_improvement`,
   `is_loss_stagnant` (Milestone 3, Issues #21-#22).
+- `qml_observer.statistics.rolling.RollingWindow`: incremental
+  mean/variance/slope over a bounded scalar history (Milestone 3, Issue #23).
+- Consolidated numerical stability test suite covering addendum §7 edge
+  cases: empty gradient arrays, NaN/Inf propagation, and zero/one-observation
+  `RollingWindow` behavior (Milestone 3, Issue #24).
