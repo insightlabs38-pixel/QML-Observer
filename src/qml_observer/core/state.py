@@ -70,9 +70,7 @@ class RunState:
     def record(self, observation: StepObservation) -> None:
         """Append an observation to the rolling window and bump the step count."""
         if not isinstance(observation, StepObservation):
-            raise TypeError(
-                f"observation must be a StepObservation, got {type(observation)!r}"
-            )
+            raise TypeError(f"observation must be a StepObservation, got {type(observation)!r}")
         self._observations.append(observation)
         self._total_steps += 1
 

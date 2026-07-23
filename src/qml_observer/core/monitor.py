@@ -378,8 +378,7 @@ class QMLMonitor:
                 "wired up yet (Milestone 4)."
             ],
             recommendations=[
-                "Attach detectors via QMLMonitor(detectors=...) once the "
-                "diagnosis engine ships."
+                "Attach detectors via QMLMonitor(detectors=...) once the diagnosis engine ships."
             ],
         )
 
