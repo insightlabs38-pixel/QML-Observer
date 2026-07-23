@@ -22,6 +22,7 @@ from qml_observer.statistics.loss import (
     loss_slope,
     relative_loss_improvement,
 )
+from qml_observer.statistics.rolling import RollingWindow
 
 __all__ = [
     "gradient_norm",
@@ -31,4 +32,5 @@ __all__ = [
     "loss_slope",
     "relative_loss_improvement",
     "is_loss_stagnant",
+    "RollingWindow",
 ]
