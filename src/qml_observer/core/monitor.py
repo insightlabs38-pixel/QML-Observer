@@ -421,6 +421,12 @@ class QMLMonitor:
         A convenience wrapper, not a magic training-loop introspector (per
         the blueprint): it just calls `start()` before `func` runs and
         `finish()` after, regardless of how `func` itself calls `update()`.
+
+        Note: like reusing a plain `with monitor:` block, calling the
+        decorated function a second time without an intervening
+        `monitor.reset()` raises `RuntimeError`, since the run has already
+        finished. Call `reset()` between invocations if you need to watch
+        the same function multiple times.
         """
 
         @functools.wraps(func)
