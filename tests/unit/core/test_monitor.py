@@ -223,11 +223,44 @@ class TestContextManager:
             monitor.update(step=0, loss=1.0)
         assert monitor.state.finished is True
 
+    def test_enter_returns_the_same_monitor(self):
+        monitor = QMLMonitor()
+        with monitor as ctx:
+            assert ctx is monitor
+
     def test_exit_does_not_suppress_exceptions(self):
         with pytest.raises(ValueError):
             with QMLMonitor() as monitor:
                 monitor.update(step=0, loss=1.0)
                 raise ValueError("boom")
+        assert monitor.state.finished is True
+
+    def test_reusable_in_a_second_with_block_after_reset(self):
+        monitor = QMLMonitor()
+        with monitor:
+            monitor.update(step=0, loss=1.0)
+        assert monitor.state.finished is True
+
+        monitor.reset()
+
+        with monitor:
+            monitor.update(step=0, loss=1.0)
+        assert monitor.state.finished is True
+        assert monitor.state.step_count == 1
+
+    def test_reentering_a_finished_monitor_without_reset_raises(self):
+        monitor = QMLMonitor()
+        with monitor:
+            pass
+        with pytest.raises(RuntimeError):
+            with monitor:
+                pass
+
+    def test_exit_is_idempotent_if_already_finished_inside_block(self):
+        with QMLMonitor() as monitor:
+            monitor.update(step=0, loss=1.0)
+            monitor.finish()  # explicit finish inside the block
+        # __exit__ sees state.finished already True and does not error
         assert monitor.state.finished is True
 
 
@@ -253,6 +286,42 @@ class TestWatchDecorator:
 
         assert train.__name__ == "train"
         assert train.__doc__ == "Docstring."
+
+    def test_watch_passes_through_args_and_kwargs(self):
+        monitor = QMLMonitor()
+
+        @monitor.watch
+        def train(a, b, *, c):
+            return a + b + c
+
+        assert train(1, 2, c=3) == 6
+
+    def test_calling_watched_function_twice_without_reset_raises(self):
+        # Each call to the decorated function is a full start()/finish()
+        # cycle; calling it again re-enters __enter__ -> start(), which
+        # raises because the monitor already finished. This mirrors plain
+        # `with monitor:` reuse semantics (see TestContextManager).
+        monitor = QMLMonitor()
+
+        @monitor.watch
+        def train():
+            monitor.update(step=0, loss=1.0)
+
+        train()
+        with pytest.raises(RuntimeError):
+            train()
+
+    def test_watched_function_reusable_after_reset(self):
+        monitor = QMLMonitor()
+
+        @monitor.watch
+        def train():
+            monitor.update(step=0, loss=1.0)
+
+        train()
+        monitor.reset()
+        train()  # no longer raises
+        assert monitor.state.finished is True
 
 
 class TestReporterHooks:
