@@ -24,3 +24,17 @@ it reaches `0.1.0`.
 - Consolidated numerical stability test suite covering addendum §7 edge
   cases: empty gradient arrays, NaN/Inf propagation, and zero/one-observation
   `RollingWindow` behavior (Milestone 3, Issue #24).
+- `qml_observer.detectors.base.BaseDetector` / `DetectorResult`: shared
+  detector interface (Milestone 4, Issue #25).
+- `qml_observer.detectors.barren_plateau.BarrenPlateauDetector`: sustained
+  gradient collapse + loss stagnation detection; never triggers on a small
+  gradient alone (Milestone 4, Issue #26).
+- `qml_observer.detectors.stagnation.StagnationDetector`: frozen-optimizer
+  detection via loss/parameter/learning-rate signals (Milestone 4, Issue #27).
+- `qml_observer.detectors.convergence.ConvergenceDetector`: distinguishes
+  good convergence (low absolute loss) from bad gradient collapse
+  (Milestone 4, Issue #28).
+- `qml_observer.diagnosis.engine.DiagnosisEngine`: combines detector output
+  into a single, explainable `DiagnosisResult`, with `CONVERGED` given
+  explicit priority over other simultaneously-triggered issues; wired into
+  `QMLMonitor._evaluate()` (Milestone 4, Issue #29).
