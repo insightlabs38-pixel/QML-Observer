@@ -113,7 +113,12 @@ def relative_loss_improvement(losses) -> float:
             return 0.0
         return math.copysign(float("inf"), delta)
 
-    return float(delta / denom)
+    # delta/denom can itself be inf/inf (e.g. an inf baseline) which is a
+    # legitimate `nan` result (addendum §7: non-finite values are signal,
+    # not an error) -- suppress numpy's informational RuntimeWarning for
+    # this expected case rather than letting it leak into caller logs.
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return float(delta / denom)
 
 
 def is_loss_stagnant(losses, threshold: float) -> bool:
