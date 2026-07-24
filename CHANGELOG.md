@@ -52,3 +52,22 @@ it reaches `0.1.0`.
   categories, plus validation tests confirming each detector/diagnosis
   combination classifies every scenario correctly and does not
   false-positive on noise alone (Milestone 4, Issue #32).
+- `qml_observer.actions.base.Action` / `ActionResult`: shared action
+  interface, mirroring `detectors.base.BaseDetector` (Milestone 5,
+  Issue #33).
+- `qml_observer.actions.log.LogAction`: always-executes, never-raises
+  diagnosis logging -- intervention level 1 (Milestone 5, Issue #34).
+- `qml_observer.actions.alert.AlertAction`: terminal + logger warning for
+  non-`"info"`-severity diagnoses -- intervention level 2 (Milestone 5,
+  Issue #35).
+- `qml_observer.actions.stop.StopAction`: records a stop request via a
+  `.triggered` flag for the caller's training loop to check; never
+  reaches into the loop directly, per the non-invasive core principle
+  (Milestone 5, Issue #36).
+- `qml_observer.actions.policies.ActionPolicy`: selects `log`/`alert`/
+  `stop` per diagnosis for the `"log"`, `"warn"`, `"pause"`, `"stop"`,
+  and `"adaptive"` modes; enforces addendum §1's conservative
+  degraded-diagnosis rule (a `degraded=True` result never escalates to
+  `StopAction` unless `mode="adaptive"` **and** the explicit
+  `allow_stop_on_degraded=True` flag is set) (Milestone 5, Issues
+  #37-#39). `"pause"` behaves as `"warn"` until `PauseAction` ships.
