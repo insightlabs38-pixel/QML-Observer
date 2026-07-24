@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from qml_observer.actions.base import Action, ActionResult
 from qml_observer.schemas.diagnosis import DiagnosisResult
 
