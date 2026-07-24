@@ -72,8 +72,7 @@ class StopAction(Action):
             return ActionResult(
                 action_name=self.name,
                 executed=True,
-                message=f"{message} (Note: logging the stop failed: "
-                f"{type(exc).__name__}: {exc})",
+                message=f"{message} (Note: logging the stop failed: {type(exc).__name__}: {exc})",
             )
 
         return ActionResult(action_name=self.name, executed=True, message=message)
