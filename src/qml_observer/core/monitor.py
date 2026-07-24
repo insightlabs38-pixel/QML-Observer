@@ -11,15 +11,30 @@ return the `INSUFFICIENT_EVIDENCE` placeholder via `_default_diagnosis()`
 exactly as in Milestone 2/3 -- an empty monitor proves the event/lifecycle
 plumbing only. `_evaluate()` remains the single seam: it now delegates to
 `DiagnosisEngine.evaluate()` whenever `detectors` is non-empty, without any
-other change to lifecycle code. The `ActionPolicy` engine referenced by
-`policy` still ships in Milestone 5.
+other change to lifecycle code.
+
+Milestone 5 update (Issues #38-#39, "Add warn mode" / "Add stop mode"):
+`policy` is now backed by a real `ActionPolicy` (`actions/policies.py`).
+Each `update()`/`finish()` call runs the policy against that step's
+diagnosis, so `"warn"` genuinely emits terminal alerts and `"stop"`
+genuinely arms a `StopAction` -- this replaces the placeholder
+`should_stop()` logic used before Milestone 5 shipped the action layer.
+`should_stop()` itself stays a pure, side-effect-free recomputation from
+`state.latest_diagnosis` (via `ActionPolicy.select_action()`), not a
+read of prior side-effect state, so it keeps working whether the caller
+drives diagnoses through `update()` or sets `state.latest_diagnosis`
+directly (as many existing unit tests do).
 
 Failure semantics (addendum §1, "Fail-open with transparency"): any
 exception raised while processing a step's data (schema validation,
-gradient summarization, future detector/statistics calls) is caught inside
+gradient summarization, detector/statistics calls) is caught inside
 `update()`/`finish()`, logged at `warning` level with a full traceback, and
 converted into a `degraded=True` diagnosis. The exception is never
-propagated into the caller's training loop.
+propagated into the caller's training loop. This same guarantee now also
+covers the action layer (Issue #40, "Test action safety"): even though
+every built-in `Action` already catches its own internal errors (see
+`actions/base.py`), a pathological custom `Action`/`ActionPolicy` that
+raises anyway is still caught here and logged, never propagated.
 
 Thread-safety (addendum, Concurrency): `QMLMonitor` is **not** thread-safe.
 See `core/state.py` for the full rationale; use one monitor per
@@ -34,6 +49,8 @@ import time
 from collections.abc import Callable
 from typing import Any, Literal, TypeVar
 
+from qml_observer.actions.base import ActionResult
+from qml_observer.actions.policies import VALID_MODES, ActionPolicy, StopAction
 from qml_observer.core.events import StepObservation
 from qml_observer.core.run import generate_run_id, validate_run_id
 from qml_observer.core.state import RunState
@@ -47,10 +64,10 @@ from qml_observer.schemas.training import TrainingEvent
 
 _logger = logging.getLogger("qml_observer")
 
-#: Supported `ActionPolicy` modes (blueprint Volume XI). The full policy
-#: engine ships in Milestone 5; this class only validates the name for now
-#: and applies the conservative subset described in `should_stop()`.
-_VALID_POLICIES = frozenset({"log", "warn", "pause", "stop", "adaptive"})
+#: Supported `ActionPolicy` modes (blueprint Volume XI), re-exported from
+#: `actions.policies` so this module has a single source of truth for
+#: valid policy strings.
+_VALID_POLICIES = VALID_MODES
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
@@ -83,6 +100,7 @@ class QMLMonitor:
         run_id: str | None = None,
         reporter: Any | None = None,
         planned_steps: int | None = None,
+        action_policy: ActionPolicy | None = None,
     ) -> None:
         """Create a monitor for a new run.
 
@@ -93,9 +111,9 @@ class QMLMonitor:
                 `finish()` return the `INSUFFICIENT_EVIDENCE` placeholder
                 diagnosis, exactly as before Milestone 4.
             policy: Action policy mode. One of "log", "warn", "pause",
-                "stop", "adaptive". The full `ActionPolicy` engine ships in
-                Milestone 5; today this only affects `should_stop()`'s
-                conservative built-in behavior.
+                "stop", "adaptive" (see `actions.policies.ActionPolicy`).
+                Ignored if `action_policy` is given (the monitor's
+                `.policy` then reflects `action_policy.mode` instead).
             window_size: Maximum number of recent steps retained in the
                 rolling window. Must be a positive int.
             run_id: Identifier for this run. Auto-generated via
@@ -108,12 +126,24 @@ class QMLMonitor:
             planned_steps: Optional total steps this run is expected to
                 take, stored for the future compute-saved estimate
                 (Milestone 7).
+            action_policy: A pre-configured `ActionPolicy` to use instead
+                of building one from `policy`. Use this for advanced
+                configuration not expressible via the `policy` string alone
+                (e.g. `mode="adaptive"` with `allow_stop_on_degraded=True`,
+                or injecting custom/test `Action` instances).
 
         Raises:
             ValueError: If `policy` is not a recognized mode, `window_size`
                 is not a positive int, or `planned_steps` is negative.
-            TypeError: If any element of `detectors` is not a `BaseDetector`.
+            TypeError: If any element of `detectors` is not a `BaseDetector`,
+                or `action_policy` is given and is not an `ActionPolicy`.
         """
+        if action_policy is not None:
+            if not isinstance(action_policy, ActionPolicy):
+                raise TypeError(
+                    f"action_policy must be an ActionPolicy, got {type(action_policy)!r}"
+                )
+            policy = action_policy.mode
         if policy not in _VALID_POLICIES:
             raise ValueError(f"policy must be one of {sorted(_VALID_POLICIES)}, got {policy!r}")
         if not isinstance(window_size, int) or isinstance(window_size, bool) or window_size < 1:
@@ -132,6 +162,10 @@ class QMLMonitor:
                 raise TypeError(f"detectors[{i}] must be a BaseDetector, got {type(d)!r}")
         self._diagnosis_engine = DiagnosisEngine(self._detectors) if self._detectors else None
         self._policy = policy
+        self._action_policy = (
+            action_policy if action_policy is not None else ActionPolicy(mode=policy)
+        )
+        self._last_action_result: ActionResult | None = None
         self._window_size = window_size
         self._planned_steps = planned_steps
         self._reporter = reporter
@@ -154,6 +188,16 @@ class QMLMonitor:
     def policy(self) -> str:
         """The configured action policy mode."""
         return self._policy
+
+    @property
+    def action_policy(self) -> ActionPolicy:
+        """The `ActionPolicy` backing this monitor's `policy` mode.
+
+        Exposed for advanced use: e.g. inspecting
+        `monitor.action_policy.stop_action.last_diagnosis`, or checking
+        `monitor.action_policy.allow_stop_on_degraded`.
+        """
+        return self._action_policy
 
     @property
     def state(self) -> RunState:
@@ -246,7 +290,38 @@ class QMLMonitor:
             diagnosis = self._degrade(exc, step=step)
 
         self._state.latest_diagnosis = diagnosis
+        self._last_action_result = self._run_action_policy(diagnosis)
         return diagnosis
+
+    def _run_action_policy(self, diagnosis: DiagnosisResult) -> ActionResult | None:
+        """Run `self._action_policy` against `diagnosis`, fail-open.
+
+        Every built-in `Action` already catches its own internal errors
+        (`actions/base.py`), so this is a defensive second layer: if a
+        custom `Action`/`ActionPolicy` still raises, the failure is logged
+        and swallowed here rather than propagated into the caller's
+        training loop (Issue #40, "Test action safety"), exactly like
+        `_degrade()` does for detector/statistics failures.
+        """
+        try:
+            return self._action_policy.execute(diagnosis)
+        except Exception:
+            _logger.warning(
+                "qml_observer: action policy failed for run_id=%s step=%s; "
+                "training continues uninterrupted (fail-open policy).",
+                self.run_id,
+                self._state.step_count,
+                exc_info=True,
+            )
+            return None
+
+    def latest_action_result(self) -> ActionResult | None:
+        """The `ActionResult` from the most recent `update()`/`finish()` call.
+
+        `None` before any step has run, or if the action policy itself
+        failed on the last call (see `_run_action_policy`).
+        """
+        return self._last_action_result
 
     def _process_update(
         self,
@@ -317,6 +392,7 @@ class QMLMonitor:
         self._state.latest_diagnosis = diagnosis
         self._state.finished = True
         self._state.end_time = time.time()
+        self._last_action_result = self._run_action_policy(diagnosis)
 
         if self._reporter is not None:
             try:
@@ -343,25 +419,32 @@ class QMLMonitor:
         self._state.run_id = new_run_id
         self._state.reset()
         self._last_perf_time = None
+        self._last_action_result = None
         if self._diagnosis_engine is not None:
             self._diagnosis_engine.reset()
+        self._action_policy.reset()
 
     # -- diagnosis access -------------------------------------------------
 
     def should_stop(self) -> bool:
         """Whether the configured policy currently recommends stopping.
 
-        Conservative by design (addendum §1): a `degraded` diagnosis never
-        triggers a stop recommendation unless `policy="adaptive"` was
-        explicitly chosen. The full `ActionPolicy` engine (Milestone 5)
-        will replace this with richer per-severity logic.
+        A pure, side-effect-free recomputation of
+        `self._action_policy.select_action(state.latest_diagnosis)`: it
+        does not depend on whether `update()`/`finish()` (and therefore
+        the action policy's own `execute()`) has actually run for the
+        current `state.latest_diagnosis` -- so it gives a consistent
+        answer whether diagnoses are produced via `update()` or set
+        directly on `state.latest_diagnosis` (e.g. in tests). Conservative
+        by design (addendum §1, enforced inside `ActionPolicy`): a
+        `degraded` diagnosis never recommends a stop unless the monitor's
+        `action_policy` was explicitly configured with
+        `mode="adaptive", allow_stop_on_degraded=True`.
         """
         diagnosis = self._state.latest_diagnosis
         if diagnosis is None:
             return False
-        if diagnosis.degraded and self._policy != "adaptive":
-            return False
-        return self._policy == "stop" and diagnosis.severity == "critical"
+        return isinstance(self._action_policy.select_action(diagnosis), StopAction)
 
     def latest_diagnosis(self) -> DiagnosisResult | None:
         """The most recent `DiagnosisResult`, or None if no step has run yet."""
