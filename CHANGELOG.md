@@ -71,3 +71,13 @@ it reaches `0.1.0`.
   `StopAction` unless `mode="adaptive"` **and** the explicit
   `allow_stop_on_degraded=True` flag is set) (Milestone 5, Issues
   #37-#39). `"pause"` behaves as `"warn"` until `PauseAction` ships.
+- `QMLMonitor` is now wired to a real `ActionPolicy` instead of its
+  previous placeholder `should_stop()` logic: `update()`/`finish()` run
+  the policy each step (exposed via `latest_action_result()`), and
+  `should_stop()` is a pure recomputation from `state.latest_diagnosis`
+  via `ActionPolicy.select_action()`. A new `action_policy` constructor
+  argument allows advanced configuration (e.g. `mode="adaptive"` with
+  `allow_stop_on_degraded=True`, or custom `Action` injection for
+  testing). Action-layer failures are caught the same fail-open way as
+  detector/statistics failures, so a broken custom `Action` cannot crash
+  a training loop (Milestone 5, Issues #38-#40).
