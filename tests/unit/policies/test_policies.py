@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from qml_observer.actions.alert import AlertAction
 from qml_observer.actions.log import LogAction
 from qml_observer.actions.policies import VALID_MODES, ActionPolicy
