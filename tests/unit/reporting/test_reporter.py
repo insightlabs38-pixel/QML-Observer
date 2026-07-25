@@ -1,6 +1,5 @@
 """Unit tests for qml_observer.reporting.reporter.RunReporter (Milestone 7, Issue #49)."""
 
-
 from qml_observer.core.monitor import QMLMonitor
 from qml_observer.reporting.jsonl import read_jsonl
 from qml_observer.reporting.reporter import RunReporter

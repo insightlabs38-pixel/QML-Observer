@@ -80,9 +80,7 @@ class TestBuildRunSummary:
         state = RunState(run_id="run-1", window_size=10)
         for step, loss in enumerate([3.0, 2.0, 1.0]):
             state.record(
-                StepObservation(
-                    training_event=TrainingEvent(run_id="run-1", step=step, loss=loss)
-                )
+                StepObservation(training_event=TrainingEvent(run_id="run-1", step=step, loss=loss))
             )
         summary = build_run_summary(state, _diagnosis())
         curve = summary["loss_curve_summary"]
@@ -115,9 +113,7 @@ class TestBuildRunSummary:
         for step in range(5):
             state.record(
                 StepObservation(
-                    training_event=TrainingEvent(
-                        run_id="run-1", step=step, loss=1.0, wall_time=2.0
-                    )
+                    training_event=TrainingEvent(run_id="run-1", step=step, loss=1.0, wall_time=2.0)
                 )
             )
         summary = build_run_summary(state, _diagnosis())
