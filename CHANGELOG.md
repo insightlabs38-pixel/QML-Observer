@@ -116,4 +116,40 @@ it reaches `0.1.0`.
   covering healthy convergence, the engineered plateau scenario, both
   parameter-shift and adjoint differentiation, finite shots, and fail-open
   behavior with a real QNode (Milestone 6, Issue #47).
+- `qml_observer.adapters.qiskit.adapter.QiskitAdapter`: `attach()`/`detach()`
+  lifecycle accepting a `QuantumCircuit` directly or a trainer object
+  exposing one (`.circuit`/`.ansatz`, e.g. `VQC`/`NeuralNetworkClassifier`),
+  and `record_step()`/`record_gradient()` observing loss/gradients/parameters,
+  never reimplementing Qiskit's own optimization or gradient machinery
+  (Milestone 8, Issue #58).
+- `QiskitAdapter.callback()`: a single callback entry point normalizing
+  across the Qiskit optimizer/trainer callback shapes seen in practice --
+  `qiskit-machine-learning` trainer style (`weights, obj_func_eval`),
+  `qiskit_algorithms`/`qiskit-machine-learning` `SPSA`-style (`nfev, params,
+  fval, stepsize, accepted`), plain `scipy.optimize.minimize`-style (`xk`
+  only), and the blueprint's own manual `(iteration, parameters, loss)`
+  form -- so it can be passed directly as `callback=adapter.callback`
+  (Milestone 8, Issue #59).
+- `QiskitAdapter.normalize_optimizer_metadata()`: best-effort
+  `OptimizerMetadata` extraction from a live Qiskit optimizer object via
+  its `.settings` dict, handling inconsistent learning-rate keys across
+  optimizer classes (`"learning_rate"` for `SPSA`, `"lr"` for `ADAM`, none
+  for gradient-free optimizers like `COBYLA`) and inferring
+  `gradient_method` (e.g. `"spsa-approximation"`, `"gradient-free"`) from
+  known optimizer class names without raising on unrecognized ones
+  (Milestone 8, Issue #60).
+- `examples/qiskit/`: `basic_monitor.py` (minimal integration via manual
+  parameter-shift gradients, no detectors), `barren_plateau_demo.py` (the
+  Qiskit version of the blueprint's Volume XX "critical MVP demo"), and
+  `vqc_callback_demo.py` (wires `QiskitAdapter.callback` directly into a
+  real `qiskit-machine-learning` `VQC` trainer's own `callback=` hook, with
+  no manual training loop) (Milestone 8, Issue #61).
+- `tests/integration/qiskit/`: end-to-end tests driving a real
+  `QuantumCircuit`, a real Qiskit `Estimator` primitive, and real
+  parameter-shift gradients through the full adapter -> monitor ->
+  detector -> diagnosis -> action pipeline (healthy convergence, the
+  engineered plateau scenario + real `StopAction` firing, circuit/optimizer
+  metadata, fail-open behavior), plus a dedicated suite driving a real
+  `VQC.fit()` end to end purely through `QiskitAdapter.callback()`
+  (Milestone 8, Issue #62).
 
