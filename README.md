@@ -38,6 +38,19 @@ Runnable examples live under `examples/`. PennyLane examples (requires
   shot budget, showing noisier per-step gradient statistics without
   false-positive plateau detection.
 
+Qiskit examples (requires `pip install -e ".[dev,qiskit]"`):
+
+- `examples/qiskit/basic_monitor.py` — minimal `QuantumCircuit` +
+  `QMLMonitor` integration via manual parameter-shift gradients, no
+  detectors.
+- `examples/qiskit/barren_plateau_demo.py` — the Qiskit version of the
+  flagship demo: a healthy run that is never stopped early, contrasted
+  with a collapsed-gradient run that is stopped early with an estimated
+  compute-saved figure.
+- `examples/qiskit/vqc_callback_demo.py` — wires `QiskitAdapter.callback`
+  directly into a real `qiskit-machine-learning` `VQC` trainer's own
+  `callback=` hook, with no manual training loop at all.
+
 ## Installation
 
 ```bash
