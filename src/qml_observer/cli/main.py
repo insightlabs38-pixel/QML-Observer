@@ -138,9 +138,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qml-observer", description="QML Observer CLI.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    inspect_parser = subparsers.add_parser(
-        "inspect", help="Print every record in a JSONL run log."
-    )
+    inspect_parser = subparsers.add_parser("inspect", help="Print every record in a JSONL run log.")
     inspect_parser.add_argument("path", help="Path to a JSONL log file.")
     inspect_parser.set_defaults(func=cmd_inspect)
 

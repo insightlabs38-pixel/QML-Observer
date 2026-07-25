@@ -47,9 +47,7 @@ class TestEstimateComputeSavedFromState:
         for step in range(5):
             state.record(
                 StepObservation(
-                    training_event=TrainingEvent(
-                        run_id="run-1", step=step, loss=1.0, wall_time=2.0
-                    )
+                    training_event=TrainingEvent(run_id="run-1", step=step, loss=1.0, wall_time=2.0)
                 )
             )
 
@@ -66,9 +64,7 @@ class TestEstimateComputeSavedFromState:
         from qml_observer.schemas.training import TrainingEvent
 
         state.record(
-            StepObservation(
-                training_event=TrainingEvent(run_id="run-1", step=0, wall_time=2.0)
-            )
+            StepObservation(training_event=TrainingEvent(run_id="run-1", step=0, wall_time=2.0))
         )
         saved = estimate_compute_saved_from_state(state, actual_steps_at_stop=10)
         assert saved == pytest.approx((100 - 10) * 2.0)
