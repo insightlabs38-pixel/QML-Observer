@@ -45,6 +45,9 @@ dev = [
     "pre-commit>=3.7",
 ]
 
+[project.scripts]
+qml-observer = "qml_observer.cli.main:main"
+
 [project.urls]
 Homepage = "https://github.com/qml-observer/qml-observer"
 Issues = "https://github.com/qml-observer/qml-observer/issues"
