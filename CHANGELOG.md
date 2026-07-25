@@ -81,3 +81,26 @@ it reaches `0.1.0`.
   testing). Action-layer failures are caught the same fail-open way as
   detector/statistics failures, so a broken custom `Action` cannot crash
   a training loop (Milestone 5, Issues #38-#40).
+- `qml_observer.adapters.pennylane.adapter.PennyLaneAdapter`: first real
+  framework integration. `attach()`/`detach()` a PennyLane `QNode`;
+  `record_step()` observes already-computed `loss`/`gradients`/
+  `parameters` (never reimplements PennyLane's gradient machinery) and
+  auto-populates `CircuitMetadata` and `OptimizerMetadata` on every call
+  (Milestone 6, Issue #41). Requires the optional `pennylane` extra
+  (`pip install qml-observer[pennylane]`); raises a clear `ImportError`
+  otherwise.
+- `PennyLaneAdapter` records the QNode's configured `diff_method` into
+  `OptimizerMetadata.gradient_method`, verified for both
+  `"parameter-shift"` (Milestone 6, Issue #42) and `"adjoint"`
+  (Milestone 6, Issue #43).
+- `PennyLaneAdapter` infers the shot count for finite-shots devices from
+  the constructed tape (falling back to the device default), reporting
+  `None` for analytic (`shots=None`) circuits; an explicit `shots=`
+  argument to `record_step()` always overrides inference
+  (Milestone 6, Issue #44).
+- `PennyLaneAdapter.extract_circuit_metadata()`: builds `CircuitMetadata`
+  (qubits, depth, gate count, entangling-gate count, parameter count)
+  from a PennyLane tape/`QuantumScript`, extracting every field
+  defensively so an unexpected PennyLane version/tape shape degrades to
+  `None` fields instead of raising (Milestone 6, Issue #45).
+
