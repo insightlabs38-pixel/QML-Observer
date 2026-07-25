@@ -152,4 +152,46 @@ it reaches `0.1.0`.
   metadata, fail-open behavior), plus a dedicated suite driving a real
   `VQC.fit()` end to end purely through `QiskitAdapter.callback()`
   (Milestone 8, Issue #62).
+- `docs/integrations/qiskit.md`: Qiskit integration guide covering
+  installation, the manual `record_step()`/`record_gradient()` path, all
+  four `callback()` argument shapes with real `qiskit_algorithms`/
+  `qiskit-machine-learning` examples, circuit/optimizer metadata
+  extraction, and the version-variance handling strategy (Milestone 8,
+  Issue #63). **Milestone 8 complete** ahead of the MVP release (Milestone
+  7) per explicit project direction, so Qiskit integration ships alongside
+  PennyLane in the same MVP.
+- `qml_observer.reporting.jsonl`: JSONL event/diagnosis/summary logging.
+  `JSONLWriter` appends newline-delimited JSON records (flushing on every
+  write for crash-durability, per the fail-open/transparency policy,
+  addendum §1); `read_jsonl()` reads them back. `event_record`/
+  `diagnosis_record`/`summary_record` build the three record shapes, with
+  `*_to_dict` helpers serializing every schema dataclass (enums to
+  `.value`, `GradientSnapshot.values` omitted by default to keep logs
+  small) (Milestone 7, Issue #48).
+- `qml_observer.reporting.reporter.RunReporter`: implements the
+  blueprint's Volume XII `record_event`/`record_diagnosis`/`finalize` duck
+  type for `QMLMonitor(reporter=...)`, optionally streaming every record
+  to a JSONL log (Issue #48) and producing a run summary dict on
+  `finalize()` (idempotent). `qml_observer.reporting.summary.build_run_summary()`
+  is the richer, direct-call alternative that reads circuit/optimizer/
+  gradient detail from a `RunState` (e.g. `monitor.state`) -- documented
+  as necessary because `QMLMonitor`'s automatic reporter hook only ever
+  passes the bare `TrainingEvent`, not the full `StepObservation`
+  (Milestone 7, Issue #49).
+- `qml_observer.reporting.export.estimate_compute_saved()` /
+  `estimate_compute_saved_from_state()`: implements the addendum §11
+  resolved formula, `saved = (planned_steps - actual_steps) *
+  mean_wall_time_per_step`, returning `None` (never a fabricated guess)
+  when `planned_steps` or per-step timing is unavailable. Wired into both
+  `RunReporter.finalize()` and `build_run_summary()`. Also adds
+  `format_compute_saved()` (human-readable rendering for CLI/report
+  output) and `export_summary_json()` (Milestone 7, Issue #51).
+- `qml_observer.cli.main`: `qml-observer` console script (registered via
+  `[project.scripts]`) with `inspect` (dump every JSONL record as pretty
+  JSON) and `report` (blueprint Volume XV-style human-readable run
+  summary, including status, evidence, confidence, and estimated compute
+  saved) subcommands reading logs produced by `RunReporter`. `run
+  config.yaml` and `benchmark <name>` are recognized but intentionally
+  exit with a clear "not yet implemented" message rather than inventing an
+  unspecified config/benchmark format (Milestone 7, Issue #50).
 

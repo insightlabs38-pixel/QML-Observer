@@ -6,8 +6,11 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** early development (Milestone 0/1). Core schemas and monitoring
-> engine are being built incrementally — see the issue tracker for progress.
+> **Status:** early development. Core schemas, monitoring engine, detectors,
+> diagnosis engine, actions, and both the PennyLane and Qiskit adapters are
+> built (Milestones 0–6, 8); JSONL logging, run summaries, compute-saved
+> estimation, and the CLI are landing now (Milestone 7, in progress ahead of
+> the v0.1.0 MVP release) — see the issue tracker for progress.
 
 ## Scope note
 
@@ -50,6 +53,30 @@ Qiskit examples (requires `pip install -e ".[dev,qiskit]"`):
 - `examples/qiskit/vqc_callback_demo.py` — wires `QiskitAdapter.callback`
   directly into a real `qiskit-machine-learning` `VQC` trainer's own
   `callback=` hook, with no manual training loop at all.
+
+## Reporting & CLI
+
+Wire a `RunReporter` into `QMLMonitor` to get a JSONL event/diagnosis log
+plus a run summary (including an estimated compute-saved figure) on
+`finish()`:
+
+```python
+from qml_observer import QMLMonitor
+from qml_observer.reporting.reporter import RunReporter
+
+reporter = RunReporter("runs/run.jsonl", framework="pennylane", planned_steps=1000)
+monitor = QMLMonitor(reporter=reporter, planned_steps=1000)
+```
+
+Then inspect the log from the command line:
+
+```bash
+qml-observer report runs/run.jsonl   # human-readable run summary
+qml-observer inspect runs/run.jsonl  # every logged record as pretty JSON
+```
+
+See [`docs/integrations/qiskit.md`](./docs/integrations/qiskit.md) for the
+Qiskit adapter guide.
 
 ## Installation
 
