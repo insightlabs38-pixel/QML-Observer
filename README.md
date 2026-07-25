@@ -23,6 +23,21 @@ observed training signals — it does not claim definitive, guaranteed barren
 plateau detection in all settings. This distinction is central to the
 project's scientific credibility.
 
+## Examples
+
+Runnable examples live under `examples/`. PennyLane examples (requires
+`pip install -e ".[dev,pennylane]"`):
+
+- `examples/pennylane/basic_monitor.py` — minimal QNode + `QMLMonitor`
+  integration, no detectors.
+- `examples/pennylane/barren_plateau_demo.py` — the project's flagship
+  demo: a healthy run that is never stopped early, contrasted with a
+  collapsed-gradient run that is stopped early with an estimated
+  compute-saved figure.
+- `examples/pennylane/noisy_training.py` — training under a small finite
+  shot budget, showing noisier per-step gradient statistics without
+  false-positive plateau detection.
+
 ## Installation
 
 ```bash

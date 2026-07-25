@@ -103,4 +103,17 @@ it reaches `0.1.0`.
   from a PennyLane tape/`QuantumScript`, extracting every field
   defensively so an unexpected PennyLane version/tape shape degrades to
   `None` fields instead of raising (Milestone 6, Issue #45).
+- `examples/pennylane/`: `basic_monitor.py` (minimal integration, no
+  detectors), `barren_plateau_demo.py` (the blueprint's Volume XX "critical
+  MVP demo" -- a healthy run that is never stopped early, contrasted with an
+  engineered collapsed-gradient run that is stopped early with an estimated
+  compute-saved figure), and `noisy_training.py` (finite-shots training
+  showing noisier gradient statistics without false-positive plateau
+  detection) (Milestone 6, Issue #46).
+- `tests/integration/pennylane/`: end-to-end tests driving a real `QNode`,
+  a real PennyLane optimizer, and real `qml.grad()` gradients through the
+  full adapter -> monitor -> detector -> diagnosis -> action pipeline,
+  covering healthy convergence, the engineered plateau scenario, both
+  parameter-shift and adjoint differentiation, finite shots, and fail-open
+  behavior with a real QNode (Milestone 6, Issue #47).
 
