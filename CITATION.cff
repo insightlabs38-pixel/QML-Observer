@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use QML Observer in your research, please cite it as below."
+title: "QML Observer: an observability and diagnostic framework for variational quantum machine learning training"
+authors:
+  - name: "QML Observer Contributors"
+version: 0.1.0
+date-released: "2026-07-25"
+url: "https://github.com/insightlabs38-pixel/QML-Observer"
+repository-code: "https://github.com/insightlabs38-pixel/QML-Observer"
+license: MPL-2.0

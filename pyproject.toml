@@ -20,7 +20,7 @@ keywords = [
     "qiskit",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Physics",
     "Programming Language :: Python :: 3",
@@ -49,9 +49,10 @@ dev = [
 qml-observer = "qml_observer.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/qml-observer/qml-observer"
-Issues = "https://github.com/qml-observer/qml-observer/issues"
-Documentation = "https://qml-observer.readthedocs.io"
+Homepage = "https://github.com/insightlabs38-pixel/QML-Observer"
+Repository = "https://github.com/insightlabs38-pixel/QML-Observer"
+Issues = "https://github.com/insightlabs38-pixel/QML-Observer/issues"
+Documentation = "https://github.com/insightlabs38-pixel/QML-Observer/tree/main/docs"
 
 [tool.hatch.version]
 path = "src/qml_observer/__init__.py"

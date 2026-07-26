@@ -53,6 +53,9 @@ license change will be called out prominently in `CHANGELOG.md`.
 
 New built-in detectors should go through the RFC template in
 `docs/development/detector_rfc_template.md` (added alongside Milestone 14).
-Community plugin detectors (third-party, loaded via the plugin API) do not
-require this process but run in-process with no sandboxing — see
-`docs/development/data_handling.md` for the security boundary this implies.
+A third-party detector plugin API is planned for Milestone 14 (not yet
+shipped as of `0.1.0`); when it lands, plugin detectors will run in-process
+with no sandboxing, and that security boundary will be documented
+explicitly rather than silently assumed. See
+`docs/development/data_handling.md` for the current data-retention and
+privacy model.

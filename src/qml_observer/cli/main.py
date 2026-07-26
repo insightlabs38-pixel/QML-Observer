@@ -7,6 +7,7 @@ produced by `qml_observer.reporting.reporter.RunReporter` (Issues #48/#49):
 
     qml-observer inspect run.jsonl
     qml-observer report run.jsonl
+    qml-observer telemetry {enable,disable,status}
 
 Scope note: the blueprint's Volume XV also sketches `run config.yaml` and
 `benchmark barren-plateau` subcommands. Implementing those would require a
@@ -134,6 +135,26 @@ def cmd_not_implemented(args: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_telemetry(args: argparse.Namespace) -> int:
+    """Manage opt-in anonymized telemetry consent (addendum §5)."""
+    from qml_observer import telemetry
+
+    if args.telemetry_action == "enable":
+        telemetry.enable()
+        print("Anonymized telemetry enabled. Run `qml-observer telemetry status` to confirm.")
+    elif args.telemetry_action == "disable":
+        telemetry.disable()
+        print("Anonymized telemetry disabled.")
+    else:  # status
+        state = "enabled" if telemetry.is_enabled() else "disabled"
+        print(f"Anonymized telemetry is currently {state}.")
+        print(
+            "Nothing is collected or sent unless enabled. See "
+            "docs/development/telemetry.md for the full schema."
+        )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qml-observer", description="QML Observer CLI.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -159,6 +180,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark_parser.add_argument("name", help="Benchmark name, e.g. 'barren-plateau'.")
     benchmark_parser.set_defaults(func=cmd_not_implemented)
+
+    telemetry_parser = subparsers.add_parser(
+        "telemetry", help="Manage opt-in anonymized telemetry consent."
+    )
+    telemetry_parser.add_argument(
+        "telemetry_action",
+        choices=["enable", "disable", "status"],
+        help="enable/disable telemetry, or show current status.",
+    )
+    telemetry_parser.set_defaults(func=cmd_telemetry)
 
     return parser
 
