@@ -42,6 +42,15 @@ MVP's acceptance criteria are met and documented:
   contrasted with an engineered collapsed-gradient run stopped early with
   an estimated-compute-saved figure.
 
+### Known limitations
+
+See the README's "Known limitations" section for the full list. In
+summary: diagnoses are probabilistic, not proof; `"pause"` currently
+behaves as `"warn"` (`PauseAction` ships in Milestone 13); simulator-only
+through the `0.x` series; default detector thresholds are calibrated
+against the synthetic benchmark suite, not every possible circuit regime;
+`QMLMonitor` is not thread-safe; and there is no automated recovery yet.
+
 ### Fixed
 
 Found and fixed during a pre-release comprehensive review (beyond the
@@ -81,6 +90,22 @@ Milestone 7 issue list, but blocking for a beta-quality release):
   this path was silently unverified end-to-end).
 
 ### Added
+- `qml_observer.telemetry`: opt-in, anonymized telemetry (addendum §5),
+  disabled by default. `telemetry.enable()`/`disable()`/`is_enabled()`
+  and `qml-observer telemetry {enable,disable,status}` manage consent,
+  persisted to `~/.config/qml-observer/telemetry.json`; a non-interactive
+  environment (no TTY) is never auto-enrolled. `TelemetryCollector`
+  builds an anonymized `TelemetryRecord` (detector names, extracted
+  numeric thresholds, diagnosis issue/confidence, framework label, a
+  coarse qubit-count bucket, detection-latency steps -- never raw
+  gradients, loss, circuit structure, parameters, run IDs, file paths, or
+  hostnames) and either queues it locally as JSON Lines or POSTs it to an
+  explicitly configured endpoint; this release ships no bundled backend.
+  `QMLMonitor(telemetry_collector=..., telemetry_framework=...)` wires it
+  in end-to-end, fully opt-in and fail-open (a broken/misconfigured
+  collector can never affect `finish()` or the training loop). Full
+  schema published in `docs/development/telemetry.md`
+  (Issue #9b/#9c).
 - Project skeleton: `pyproject.toml`, `src/` layout, `LICENSE` (MPL-2.0),
   `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Milestone 0, Issue #1).
 - `qml_observer.schemas.training.TrainingEvent` (Milestone 1, Issue #4).

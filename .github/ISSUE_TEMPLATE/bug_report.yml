@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a problem with QML Observer
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A minimal code snippet or steps to reproduce.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: qml-observer version
+      description: Output of `python -c "import qml_observer; print(qml_observer.__version__)"`
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework adapter (if applicable)
+      options:
+        - "None (generic adapter)"
+        - PennyLane
+        - Qiskit
+        - Other

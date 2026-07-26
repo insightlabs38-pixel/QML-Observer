@@ -1,0 +1,29 @@
+name: Detector proposal
+description: Propose a new built-in detector for QML Observer
+labels: ["type:research", "area:detectors"]
+body:
+  - type: textarea
+    id: failure_mode
+    attributes:
+      label: What training failure mode does this detect?
+    validations:
+      required: true
+  - type: textarea
+    id: signals
+    attributes:
+      label: What signals does it use, and why do they distinguish this failure mode from others (e.g. normal convergence)?
+    validations:
+      required: true
+  - type: textarea
+    id: false_positives
+    attributes:
+      label: How would false positives be evaluated against the benchmark suite (docs/research/validation.md)?
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Papers, prior art, or related work.
+    validations:
+      required: false

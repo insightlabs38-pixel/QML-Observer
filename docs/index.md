@@ -82,3 +82,7 @@ later; there is simply no backend-specific queue/cost logic yet.
   [`development/contributing.md`](development/contributing.md),
   [`development/development_setup.md`](development/development_setup.md),
   and [`development/adding_detectors.md`](development/adding_detectors.md).
+- Curious what data ever leaves your machine? See
+  [`development/data_handling.md`](development/data_handling.md) and the
+  opt-in telemetry schema in
+  [`development/telemetry.md`](development/telemetry.md).

@@ -101,6 +101,8 @@ class QMLMonitor:
         reporter: Any | None = None,
         planned_steps: int | None = None,
         action_policy: ActionPolicy | None = None,
+        telemetry_collector: Any | None = None,
+        telemetry_framework: str | None = None,
     ) -> None:
         """Create a monitor for a new run.
 
@@ -131,6 +133,15 @@ class QMLMonitor:
                 configuration not expressible via the `policy` string alone
                 (e.g. `mode="adaptive"` with `allow_stop_on_degraded=True`,
                 or injecting custom/test `Action` instances).
+            telemetry_collector: Optional `qml_observer.telemetry.TelemetryCollector`.
+                Fully opt-in (addendum §5): even when provided, nothing is
+                collected or sent unless the user has separately enabled
+                telemetry via `qml_observer.telemetry.enable()` or
+                `qml-observer telemetry enable`. If omitted (the default),
+                no telemetry code runs at all.
+            telemetry_framework: Optional framework label (e.g.
+                `"pennylane"`, `"qiskit"`) included in the anonymized
+                telemetry record, if telemetry is enabled.
 
         Raises:
             ValueError: If `policy` is not a recognized mode, `window_size`
@@ -169,6 +180,8 @@ class QMLMonitor:
         self._window_size = window_size
         self._planned_steps = planned_steps
         self._reporter = reporter
+        self._telemetry_collector = telemetry_collector
+        self._telemetry_framework = telemetry_framework
         self._last_perf_time: float | None = None
 
         self._state = RunState(
@@ -405,7 +418,53 @@ class QMLMonitor:
                     exc_info=True,
                 )
 
+        if self._telemetry_collector is not None:
+            try:
+                self._maybe_emit_telemetry(diagnosis)
+            except Exception:
+                # Fail-open (addendum §1): telemetry must never affect the
+                # training loop or its diagnosis, even if misconfigured.
+                _logger.warning(
+                    "qml_observer: telemetry submission failed for run_id=%s",
+                    self.run_id,
+                    exc_info=True,
+                )
+
         return diagnosis
+
+    def _maybe_emit_telemetry(self, diagnosis: DiagnosisResult) -> None:
+        """Build and hand off an anonymized telemetry record, if enabled.
+
+        A complete no-op unless the user has separately opted in via
+        `qml_observer.telemetry.enable()` (checked inside the collector
+        itself) -- this method only ever *offers* a record, it never
+        forces transmission. See `qml_observer/telemetry/` and
+        `docs/development/telemetry.md`.
+        """
+        from qml_observer.telemetry.schema import (
+            build_telemetry_record,
+            extract_detector_thresholds,
+        )
+
+        thresholds: dict[str, float] = {}
+        for detector in self._detectors:
+            thresholds.update(extract_detector_thresholds(detector))
+
+        latest = self._state.latest_observation
+        n_qubits = latest.circuit.n_qubits if latest is not None and latest.circuit else None
+        never_diagnosed = diagnosis.issue in (IssueType.HEALTHY, IssueType.INSUFFICIENT_EVIDENCE)
+
+        record = build_telemetry_record(
+            detector_names=[type(d).__name__ for d in self._detectors],
+            thresholds=thresholds,
+            issue=diagnosis.issue.value,
+            confidence=diagnosis.confidence,
+            framework=self._telemetry_framework,
+            n_qubits=n_qubits,
+            detection_latency_steps=(None if never_diagnosed else self._state.step_count),
+        )
+        assert self._telemetry_collector is not None  # only called when set, see finish()
+        self._telemetry_collector.maybe_collect(record)
 
     def reset(self, *, run_id: str | None = None) -> None:
         """Clear all recorded state and prepare the monitor for a new run.
