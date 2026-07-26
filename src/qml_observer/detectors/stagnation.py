@@ -106,6 +106,7 @@ class StagnationDetector(BaseDetector):
 
         window_full = len(self._losses) >= self._patience if have_loss else False
         loss_stagnant = False
+        slope_confirms_stagnant = False
         if have_loss:
             improvement = relative_loss_improvement(self._losses.values())
             loss_stagnant = math.isfinite(improvement) and abs(improvement) < self._loss_threshold
@@ -113,6 +114,23 @@ class StagnationDetector(BaseDetector):
                 f"Relative loss improvement over window: {improvement:.3e} "
                 f"(stagnation threshold {self._loss_threshold:.1e})."
             )
+            # `relative_loss_improvement` compares only the window's first
+            # and last value, which a single noisy sample at either end can
+            # distort. That's an acceptable trade-off when parameter data
+            # independently confirms "frozen", but on its own it is not
+            # robust enough to trigger a diagnosis -- e.g. `noise_dominated`
+            # fixture runs occasionally showed an 8% false-trigger rate
+            # under this endpoint check alone (Milestone 7 calibration,
+            # `docs/research/validation.md`). The least-squares `slope()`
+            # uses every point in the window, so it is far less sensitive
+            # to any single noisy endpoint; requiring it to *also* imply a
+            # comparably small fractional change confirms the endpoint
+            # reading reflects the whole window's trend, not one outlier.
+            slope = self._losses.slope()
+            mean_loss = self._losses.mean()
+            if slope is not None and math.isfinite(slope) and mean_loss:
+                implied_change = abs(slope) * (len(self._losses) - 1) / abs(mean_loss)
+                slope_confirms_stagnant = implied_change < self._loss_threshold
         else:
             evidence.append("Insufficient loss history to assess stagnation.")
 
@@ -124,6 +142,14 @@ class StagnationDetector(BaseDetector):
                 f"Largest parameter-vector movement over window: {max_delta:.3e} "
                 f"(frozen threshold {_PARAMETER_FROZEN_EPSILON:.1e})."
             )
+        else:
+            evidence.append(
+                "No parameter data recorded this window; stagnation is being "
+                "assessed from loss alone, confirmed against both the "
+                "window's endpoint change and its overall least-squares "
+                "trend (pass `parameters=` to `monitor.update()` for a "
+                "stronger, three-signal confirmation)."
+            )
 
         if frozen_optimizer:
             evidence.append("Optimizer learning_rate is 0.0 (effectively frozen).")
@@ -133,7 +159,26 @@ class StagnationDetector(BaseDetector):
         # window sizing); a directly-observed zero learning rate is treated
         # as sufficient evidence on its own since it is a configuration fact,
         # not a noisy trend that needs to "persist" to be believed.
-        triggered = frozen_optimizer or (window_full and loss_stagnant and params_frozen)
+        #
+        # `parameters` is an optional argument to `monitor.update()` -- most
+        # integrations (see `adapters.generic`/quickstart examples) only
+        # ever pass `loss`/`gradients`. Requiring *both* loss stagnation
+        # *and* confirmed-frozen parameters would mean a run that genuinely
+        # never improves is silently reported as healthy whenever the
+        # caller doesn't happen to also track parameters -- exactly the
+        # kind of caller-configuration-dependent false negative the
+        # blueprint's "loss not changing / parameters not changing /
+        # optimizer effectively frozen" list treats as independent signals,
+        # not a single combined one. So: if parameter movement was actually
+        # observed and found *not* frozen, that positively contradicts
+        # "stagnant" and blocks the trigger; if parameters were never
+        # provided, loss stagnation is sufficient *only* once also
+        # confirmed by the slope check above, to avoid a single noisy
+        # endpoint sample false-triggering on an otherwise-healthy noisy
+        # run (see `noise_dominated` case above).
+        loss_signal = window_full and loss_stagnant and (have_params or slope_confirms_stagnant)
+        param_signal_or_absent = params_frozen or not have_params
+        triggered = frozen_optimizer or (loss_signal and param_signal_or_absent)
 
         persistence_ratio = min(len(self._losses) / self._patience, 1.0) if have_loss else 0.0
 

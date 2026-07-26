@@ -21,6 +21,12 @@ from plan.md §15:
    ahead of the dedicated `NoiseDetector` in Milestone 9).
 5. `stagnant_optimizer_run`  -- learning rate pinned at 0.0 with frozen
    parameters, independent of gradient magnitude.
+6. `diverging_optimizer_run` -- loss and gradients run finite for a while,
+   then go NaN/Inf, as a real optimizer divergence would. Used to confirm
+   `DiagnosisEngine` reports `IssueType.UNSTABLE` rather than silently
+   letting NaN propagate into a false `HEALTHY` reading (addendum §7,
+   closed during Milestone 7 beta review -- see
+   `diagnosis/engine.py::_check_instability`).
 
 Not included here: the plan.md §15 "depth scaling case", which requires
 comparing gradient-variance trends *across* multiple circuit
@@ -176,6 +182,39 @@ def stagnant_optimizer_run(
     return steps
 
 
+def diverging_optimizer_run(
+    n_steps: int = 30, n_params: int = 10, n_finite_steps: int = 10, seed: int = 0
+) -> list[dict[str, Any]]:
+    """Finite loss/gradients for a while, then NaN -- a real optimizer divergence.
+
+    Modeled on an exploding-gradient failure: loss grows step over step
+    (rather than the healthy/plateau fixtures' shrinking or flat loss)
+    before overflowing to NaN, and the gradient norm grows in step with
+    it. Used to confirm `DiagnosisEngine` reports `IssueType.UNSTABLE`
+    once non-finite values appear, rather than the NaN silently
+    propagating into a false `HEALTHY`/`CONVERGED` reading (addendum §7).
+    """
+    rng = np.random.default_rng(seed)
+    loss = 0.5
+    steps = []
+    for i in range(n_steps):
+        if i < n_finite_steps:
+            loss = loss * 1.5 + abs(rng.normal(0, 0.05))
+            gradient = rng.normal(0, 0.5 * (i + 1), size=n_params)
+        else:
+            loss = float("nan")
+            gradient = np.full(n_params, float("nan"))
+        steps.append(
+            dict(
+                step=i,
+                loss=loss,
+                gradients=gradient,
+                optimizer=OptimizerMetadata(name="adam", learning_rate=0.1),
+            )
+        )
+    return steps
+
+
 #: All generators, keyed by scenario name, for parametrized test/benchmark loops.
 ALL_SCENARIOS = {
     "healthy_learning": healthy_learning_run,
@@ -183,6 +222,7 @@ ALL_SCENARIOS = {
     "artificial_plateau": artificial_plateau_run,
     "noise_dominated": noise_dominated_run,
     "stagnant_optimizer": stagnant_optimizer_run,
+    "diverging_optimizer": diverging_optimizer_run,
 }
 
 

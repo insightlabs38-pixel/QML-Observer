@@ -40,7 +40,7 @@ class BarrenPlateauDetector(BaseDetector):
 
     def __init__(
         self,
-        gradient_threshold: float = 1e-8,
+        gradient_threshold: float = 5e-6,
         variance_threshold: float | None = None,
         loss_improvement_threshold: float = 1e-6,
         patience: int = 100,
@@ -49,9 +49,21 @@ class BarrenPlateauDetector(BaseDetector):
 
         Args:
             gradient_threshold: Gradient L2-norm at or below which a step
-                is considered "small". Placeholder default per addendum
-                §3 -- intended to be empirically calibrated against the
-                benchmark suite, not treated as a final value.
+                is considered "small". Milestone 7 (Issue #54/#55b):
+                empirically calibrated to `5e-6` via
+                `benchmarks/run_benchmarks.py`'s `run_calibration_sweep()`
+                against the addendum §3 fixture suite -- the original
+                `1e-8` placeholder never triggered on the
+                `artificial_plateau` fixture at all (0% detection rate),
+                since that fixture's collapsed-gradient scale is ~1e-6.
+                `5e-6` achieves 0% false positives on `healthy_learning`/
+                `convergence`/`noise_dominated` and 100% detection on
+                `artificial_plateau` (median 14 / p95 21 steps-to-detection
+                at `patience=15`, n=50 seeds/scenario). See
+                `docs/research/validation.md` for the full methodology and
+                results this default is based on. Still a default, not a
+                universal constant -- recalibrate for circuits at very
+                different scales.
             variance_threshold: Gradient variance at or below which a
                 step is considered "small variance" (flat gradient
                 distribution, not just a small mean). If `None` (the

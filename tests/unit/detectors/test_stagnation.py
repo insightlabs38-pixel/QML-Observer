@@ -97,3 +97,75 @@ class TestReset:
         result = d.diagnose()
         assert result.triggered is False
         assert result.confidence == 0.0
+
+
+class TestLossOnlyStagnation:
+    """Regression tests: `parameters` is optional on `monitor.update()`, and
+    most integrations (generic adapter / quickstart examples) never pass
+    it. Loss stagnation must still be detectable from loss alone in that
+    case -- previously, requiring both loss stagnation *and* confirmed-
+    frozen parameters meant a genuinely stuck run was silently reported as
+    healthy whenever the caller didn't happen to also track parameters.
+    """
+
+    def test_frozen_loss_with_no_parameters_or_gradients_triggers(self, run_state, obs_factory):
+        d = StagnationDetector(loss_threshold=1e-6, patience=10)
+        result = None
+        for step in range(20):
+            obs = obs_factory(step=step, loss=0.5)  # no parameters, no gradients
+            run_state.record(obs)
+            d.update(obs, run_state)
+            result = d.diagnose()
+        assert result.triggered is True
+
+    def test_healthy_decreasing_loss_with_no_parameters_does_not_trigger(
+        self, run_state, obs_factory
+    ):
+        d = StagnationDetector(loss_threshold=1e-6, patience=10)
+        loss = 1.0
+        result = None
+        for step in range(20):
+            loss *= 0.9
+            obs = obs_factory(step=step, loss=loss)  # no parameters
+            run_state.record(obs)
+            d.update(obs, run_state)
+            result = d.diagnose()
+        assert result.triggered is False
+
+    def test_noisy_but_trending_loss_with_no_parameters_does_not_trigger(
+        self, run_state, obs_factory
+    ):
+        """A single noisy endpoint sample must not false-trigger: the loss
+        here is on a genuine downward trend with noise added, so the
+        least-squares slope check should block any endpoint-driven false
+        positive from `relative_loss_improvement`'s first/last comparison.
+        """
+        rng = np.random.default_rng(0)
+        d = StagnationDetector(loss_threshold=1e-6, patience=15)
+        loss = 1.0
+        result = None
+        for step in range(60):
+            loss = max(1e-3, loss * 0.95 + rng.normal(0, 0.02))
+            obs = obs_factory(step=step, loss=loss)  # no parameters
+            run_state.record(obs)
+            d.update(obs, run_state)
+            result = d.diagnose()
+            assert result.triggered is False, f"false-triggered at step {step}"
+
+    def test_moving_parameters_block_trigger_even_if_loss_endpoint_looks_flat(
+        self, run_state, obs_factory
+    ):
+        """If parameters *are* tracked and demonstrably still moving, that
+        must override a loss-only stagnation reading -- moving parameters
+        directly contradict "the optimizer is frozen".
+        """
+        d = StagnationDetector(loss_threshold=1e-6, patience=10)
+        rng = np.random.default_rng(1)
+        result = None
+        for step in range(20):
+            params = rng.normal(size=5)  # always moving
+            obs = obs_factory(step=step, loss=0.5, parameters=params)  # flat loss
+            run_state.record(obs)
+            d.update(obs, run_state)
+            result = d.diagnose()
+        assert result.triggered is False

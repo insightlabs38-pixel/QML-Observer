@@ -122,13 +122,26 @@ def summarize_gradient(
     flat = array.ravel()
     abs_flat = np.abs(flat)
 
+    # Inf/NaN entries are an explicitly anticipated case (addendum §7: a
+    # diverging optimizer's gradient may legitimately contain them, and
+    # that is itself the signal `DiagnosisEngine._check_instability` acts
+    # on) -- not a bug to warn about. Suppress numpy's informational
+    # RuntimeWarning for the resulting inf-inf=nan/inf*0=nan arithmetic
+    # here, matching `statistics.loss.relative_loss_improvement`'s same
+    # treatment of the same expected edge case.
+    with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+        norm_l2 = float(np.linalg.norm(flat, ord=2))
+        mean_abs = float(np.mean(abs_flat))
+        variance = float(np.var(flat))
+        median_abs = float(np.median(abs_flat))
+
     return GradientSnapshot(
         values=array if keep_values else None,
-        norm_l2=float(np.linalg.norm(flat, ord=2)),
-        mean_abs=float(np.mean(abs_flat)),
-        variance=float(np.var(flat)),
+        norm_l2=norm_l2,
+        mean_abs=mean_abs,
+        variance=variance,
         min_value=float(np.min(flat)),
         max_value=float(np.max(flat)),
-        median_abs=float(np.median(abs_flat)),
+        median_abs=median_abs,
         method=method,
     )
