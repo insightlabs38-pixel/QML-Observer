@@ -80,6 +80,36 @@ class TestReportCommand:
         with pytest.raises(SystemExit):
             main(["report", str(tmp_path / "missing.jsonl")])
 
+    def test_report_shows_gradient_from_build_run_summary(self, tmp_path, capsys):
+        """`RunReporter`'s automatic summary never includes gradient/circuit
+        detail (it only ever sees the bare `TrainingEvent` -- see
+        `reporting.reporter`'s module docstring); `build_run_summary()` is
+        the richer alternative meant to be written as the `"summary"`
+        record instead. This is the CLI's only current coverage of that
+        path (previously untested)."""
+        from qml_observer.detectors.barren_plateau import BarrenPlateauDetector
+        from qml_observer.reporting.jsonl import JSONLWriter, event_record, summary_record
+        from qml_observer.reporting.summary import build_run_summary
+
+        path = tmp_path / "run.jsonl"
+        monitor = QMLMonitor(detectors=[BarrenPlateauDetector(patience=3)], policy="log")
+        with JSONLWriter(path) as writer:
+            diagnosis = None
+            for step in range(10):
+                gradients = [1e-8, -1e-8, 1e-8]
+                diagnosis = monitor.update(step=step, loss=0.5, gradients=gradients)
+                writer.write(event_record(monitor.state.latest_observation.training_event))
+            final = monitor.finish()
+            assert diagnosis is not None
+            summary = build_run_summary(monitor.state, final, framework="generic")
+            writer.write(summary_record(summary))
+
+        exit_code = main(["report", str(path)])
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "Gradient norm:" in out
+        assert "Gradient variance:" in out
+
 
 class TestNotYetImplementedCommands:
     def test_run_command_exits_nonzero(self, capsys):

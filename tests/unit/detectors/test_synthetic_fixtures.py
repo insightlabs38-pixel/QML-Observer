@@ -19,6 +19,7 @@ from tests.fixtures.synthetic_runs import (
     ALL_SCENARIOS,
     artificial_plateau_run,
     convergence_run,
+    diverging_optimizer_run,
     healthy_learning_run,
     noise_dominated_run,
     run_through_monitor,
@@ -98,6 +99,34 @@ class TestStagnantOptimizer:
         """Frozen optimizer (lr=0) is a different failure mode than gradient collapse."""
         diagnosis = run_through_monitor(_make_monitor(), stagnant_optimizer_run(seed=0))
         assert diagnosis.issue != IssueType.POSSIBLE_BARREN_PLATEAU
+
+
+class TestDivergingOptimizer:
+    """Addendum §7 / Milestone 7 beta review: a diverging (NaN) run must be
+    reported as `UNSTABLE`, not silently misread as healthy or converged."""
+
+    def test_diverging_run_is_diagnosed_as_unstable(self):
+        diagnosis = run_through_monitor(_make_monitor(), diverging_optimizer_run(seed=0))
+        assert diagnosis.issue == IssueType.UNSTABLE
+        assert diagnosis.severity == "critical"
+        assert diagnosis.confidence == 1.0
+
+    def test_diverging_run_is_not_confused_with_healthy_or_converged(self):
+        diagnosis = run_through_monitor(_make_monitor(), diverging_optimizer_run(seed=0))
+        assert diagnosis.issue not in (IssueType.HEALTHY, IssueType.CONVERGED)
+
+    def test_diverging_run_triggers_should_stop_under_stop_policy(self):
+        monitor = _make_monitor(policy="stop")
+        run_through_monitor(monitor, diverging_optimizer_run(seed=0))
+        assert monitor.should_stop() is True
+
+    def test_finite_prefix_alone_is_not_reported_as_unstable(self):
+        """The early, still-finite steps of the same fixture must not
+        themselves be misread as unstable -- only once NaN actually
+        appears."""
+        finite_only_steps = diverging_optimizer_run(seed=0)[:5]
+        diagnosis = run_through_monitor(_make_monitor(), finite_only_steps)
+        assert diagnosis.issue != IssueType.UNSTABLE
 
 
 class TestReproducibility:

@@ -8,6 +8,78 @@ it reaches `0.1.0`.
 
 ## [Unreleased]
 
+Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 9 onward).
+
+## [0.1.0] - 2026-07-25
+
+First public MVP release (Milestone 7, Issue #57). This release includes
+everything through Milestone 8: the framework-agnostic core (event
+schemas, `QMLMonitor`, rolling statistics), the three MVP detectors and
+diagnosis engine, the action/policy layer, JSONL logging and CLI
+reporting, and *both* the PennyLane and Qiskit adapters (Milestone 8
+shipped ahead of this release per explicit project direction, and all
+Milestone 7 reporting/CLI/benchmark infrastructure applies identically to
+it, since that layer is framework-agnostic by construction -- verified via
+`examples/qiskit/barren_plateau_demo.py` producing the same
+compute-saved/report output as its PennyLane counterpart).
+
+Per the blueprint's Volume XVIII "Definition of Done" and addendum §3, the
+MVP's acceptance criteria are met and documented:
+
+- Attaches to real training loops (PennyLane and Qiskit) with minimal code
+  changes.
+- Detects a sustained near-zero-gradient regime (`BarrenPlateauDetector`,
+  calibrated per `docs/research/validation.md`).
+- Does not stop obvious convergence cases (0% false-positive rate on
+  `healthy_learning`/`convergence`/`noise_dominated`, 50 seeds each).
+- Produces a useful run report (`qml-observer report run.jsonl`).
+- Passes the full unit + integration test suite (609 tests with both
+  optional frameworks installed).
+- Ships two complete end-to-end open-source examples
+  (`examples/pennylane/barren_plateau_demo.py`,
+  `examples/qiskit/barren_plateau_demo.py`) demonstrating the blueprint's
+  Volume XX "critical MVP demo": a healthy run completing normally,
+  contrasted with an engineered collapsed-gradient run stopped early with
+  an estimated-compute-saved figure.
+
+### Fixed
+
+Found and fixed during a pre-release comprehensive review (beyond the
+Milestone 7 issue list, but blocking for a beta-quality release):
+
+- **`StagnationDetector` silently missed the common no-`parameters` case.**
+  `monitor.update()`'s `parameters` argument is optional and most
+  integrations (the generic-adapter/quickstart pattern) never pass it --
+  but the detector required *both* loss stagnation *and* confirmed-frozen
+  parameters to trigger, so a genuinely stuck run with a nonzero learning
+  rate was reported as healthy indefinitely whenever the caller didn't
+  also track parameters. Fixed: loss stagnation alone now triggers when
+  parameters were never provided, confirmed by an additional
+  least-squares-slope check (not just the raw endpoint comparison) so a
+  single noisy sample can't false-trigger on an otherwise-healthy noisy
+  run -- verified at 0% false-positive rate (n=100) on the
+  `healthy_learning`/`convergence`/`noise_dominated` fixtures.
+- **`IssueType.UNSTABLE` was never actually produced.** The issue type,
+  its explanation text, and addendum §7's requirement to treat NaN/Inf
+  loss as a distinct signal all existed, but no detector or the diagnosis
+  engine ever checked for it -- a diverging run (loss -> NaN) was reported
+  as `HEALTHY` with 100% confidence. Fixed: `DiagnosisEngine.evaluate()`
+  now checks for a non-finite loss or gradient norm ahead of detector
+  combination and reports `UNSTABLE`/`"critical"` immediately, overriding
+  even a simultaneously-triggered `CONVERGED` reading. Added the
+  `diverging_optimizer` synthetic fixture and dedicated unit/fixture-level
+  tests for this path (previously zero coverage of any NaN/Inf scenario
+  existed anywhere in the suite).
+- Suppressed the numpy `RuntimeWarning` from computing gradient
+  norm/variance over an Inf/NaN-containing array (`summarize_gradient`) --
+  an anticipated case (addendum §7), not a real numerical bug, matching
+  the existing suppression in `statistics.loss.relative_loss_improvement`.
+- Closed a test-coverage gap: no test previously exercised
+  `build_run_summary()`'s gradient/circuit fields actually rendering
+  through `qml-observer report` (`RunReporter`'s own automatic summary
+  never includes them -- see `reporting/reporter.py`'s docstring -- so
+  this path was silently unverified end-to-end).
+
 ### Added
 - Project skeleton: `pyproject.toml`, `src/` layout, `LICENSE` (MPL-2.0),
   `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Milestone 0, Issue #1).
@@ -194,4 +266,39 @@ it reaches `0.1.0`.
   config.yaml` and `benchmark <name>` are recognized but intentionally
   exit with a clear "not yet implemented" message rather than inventing an
   unspecified config/benchmark format (Milestone 7, Issue #50).
+- `benchmarks/run_benchmarks.py`: the runnable calibration/benchmark
+  harness -- `run_false_positive_benchmark()` (Issue #53, healthy/
+  convergence/noise-dominated fixtures), `run_detection_latency_benchmark()`
+  (Issue #54, artificial-plateau fixture), `run_full_benchmark()` (Issue
+  #55, the combined comparison), and `run_calibration_sweep()` (addendum
+  §3's threshold-sweep primitive). Reuses
+  `tests/fixtures/synthetic_runs.py` rather than a second fixture set.
+  Results are saved to `benchmarks/results/calibration_results.json`
+  (Milestone 7, Issues #53-#55).
+- `benchmarks/qml_observer_benchmark.ipynb`: the benchmark notebook
+  (Milestone 7, Issue #52) -- a narrative, executed wrapper around
+  `run_benchmarks.py` covering the calibration sweep, false-positive/
+  detection-latency results, and the live PennyLane "critical MVP demo".
+- **Calibration finding (Issue #54/#55b):** the benchmark suite found
+  `BarrenPlateauDetector`'s original `gradient_threshold=1e-8` placeholder
+  never triggered on the `artificial_plateau` fixture at all (0%
+  detection rate across 50 seeds) -- that fixture's collapsed-gradient
+  scale (`~1e-6`) never fell below `1e-8`. Recalibrated to `5e-6`: 0%
+  false-positive rate on `healthy_learning`/`convergence`/`noise_dominated`
+  (50 seeds each) and 100% detection on `artificial_plateau` (median 14 /
+  p95 21 steps-to-detection). `variance_threshold`'s default moved
+  accordingly (`gradient_threshold ** 2`). See
+  `docs/research/validation.md` and `docs/research/benchmarks.md` for the
+  full methodology, sweep table, and versioned record of this change
+  (Milestone 7, Issue #54/#55b).
+- MVP documentation (Milestone 7, Issue #56): `docs/index.md`;
+  `docs/getting_started/{installation,quickstart,concepts}.md` (including
+  the "How to interpret alerts" guide); `docs/architecture/{overview,
+  events,adapters,detectors,actions}.md`; `docs/detectors/{barren_plateau,
+  stagnation,convergence,noise}.md`; `docs/integrations/{pennylane,
+  generic}.md` (`qiskit.md` shipped with Milestone 8); `docs/research/
+  {methodology,benchmarks,validation}.md`; `docs/development/
+  {contributing,development_setup,adding_detectors}.md`; `docs/roadmap.md`
+  (documenting addendum §4's simulator-only scope and what hardware
+  integration would need).
 

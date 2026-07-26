@@ -111,6 +111,74 @@ class TestEvaluateHealthy:
         assert result.severity == "info"
 
 
+class TestEvaluateInstability:
+    """Addendum §7 / Milestone 7 beta review: `_check_instability` must
+    override the headline diagnosis whenever loss or gradient norm is
+    NaN/Inf, ahead of (and regardless of) whatever the detectors
+    themselves report."""
+
+    def test_nan_loss_reports_unstable(self, run_state, obs_factory):
+        engine = DiagnosisEngine([BarrenPlateauDetector(patience=3)])
+        obs = obs_factory(step=0, loss=float("nan"), gradient=np.array([0.1, 0.2]))
+        run_state.record(obs)
+        result = engine.evaluate(obs, run_state)
+        assert result.issue == IssueType.UNSTABLE
+        assert result.severity == "critical"
+        assert result.confidence == 1.0
+        assert result.recommendations
+
+    def test_inf_loss_reports_unstable(self, run_state, obs_factory):
+        engine = DiagnosisEngine([BarrenPlateauDetector(patience=3)])
+        obs = obs_factory(step=0, loss=float("inf"), gradient=np.array([0.1, 0.2]))
+        run_state.record(obs)
+        result = engine.evaluate(obs, run_state)
+        assert result.issue == IssueType.UNSTABLE
+
+    def test_non_finite_gradient_norm_reports_unstable(self, run_state, obs_factory):
+        engine = DiagnosisEngine([BarrenPlateauDetector(patience=3)])
+        obs = obs_factory(step=0, loss=0.5, gradient=np.array([float("inf"), 1.0]))
+        run_state.record(obs)
+        result = engine.evaluate(obs, run_state)
+        assert result.issue == IssueType.UNSTABLE
+
+    def test_unstable_overrides_converged(self, run_state, obs_factory):
+        """A NaN loss must never be reported as CONVERGED even if a prior
+        window of genuinely-converged steps preceded it."""
+        engine = DiagnosisEngine(
+            [ConvergenceDetector(loss_threshold=0.05, gradient_threshold=1e-3, patience=5)]
+        )
+        result = None
+        for step in range(10):
+            obs = obs_factory(step=step, loss=0.001, gradient=np.full(4, 1e-6))
+            run_state.record(obs)
+            result = engine.evaluate(obs, run_state)
+        assert result.issue == IssueType.CONVERGED  # sanity check on the setup
+
+        obs = obs_factory(step=10, loss=float("nan"), gradient=np.full(4, 1e-6))
+        run_state.record(obs)
+        result = engine.evaluate(obs, run_state)
+        assert result.issue == IssueType.UNSTABLE
+
+    def test_finite_values_are_not_reported_as_unstable(self, run_state, obs_factory):
+        engine = DiagnosisEngine([BarrenPlateauDetector(patience=3)])
+        obs = obs_factory(step=0, loss=0.5, gradient=np.array([0.1, 0.2]))
+        run_state.record(obs)
+        result = engine.evaluate(obs, run_state)
+        assert result.issue != IssueType.UNSTABLE
+
+    def test_detectors_still_update_on_an_unstable_step(self, run_state, obs_factory):
+        """Detector rolling state must keep advancing even on an unstable
+        step, so the run can be correctly diagnosed if it later recovers
+        to finite values."""
+        detector = BarrenPlateauDetector(patience=3)
+        engine = DiagnosisEngine([detector])
+        obs = obs_factory(step=0, loss=float("nan"), gradient=np.array([0.1, 0.2]))
+        run_state.record(obs)
+        engine.evaluate(obs, run_state)
+        # The detector's own internal gradient-norm window recorded a step.
+        assert detector.diagnose().evidence  # non-empty: update() ran
+
+
 class TestReset:
     def test_reset_clears_all_driven_detectors(self, run_state, obs_factory):
         detector = BarrenPlateauDetector(patience=3)

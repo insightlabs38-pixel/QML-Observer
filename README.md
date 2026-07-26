@@ -6,11 +6,12 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** early development. Core schemas, monitoring engine, detectors,
-> diagnosis engine, actions, and both the PennyLane and Qiskit adapters are
-> built (Milestones 0–6, 8); JSONL logging, run summaries, compute-saved
-> estimation, and the CLI are landing now (Milestone 7, in progress ahead of
-> the v0.1.0 MVP release) — see the issue tracker for progress.
+> **Status:** v0.1.0 — first public MVP release. Core schemas, monitoring
+> engine, detectors, diagnosis engine, actions, both the PennyLane and
+> Qiskit adapters, JSONL logging, run summaries, compute-saved estimation,
+> the CLI, and the calibration benchmark suite are all shipped (Milestones
+> 0–8). See `CHANGELOG.md` for the full release notes and
+> `docs/roadmap.md` for what's next.
 
 ## Scope note
 
@@ -77,6 +78,21 @@ qml-observer inspect runs/run.jsonl  # every logged record as pretty JSON
 
 See [`docs/integrations/qiskit.md`](./docs/integrations/qiskit.md) for the
 Qiskit adapter guide.
+
+## Benchmarks & calibration
+
+`benchmarks/run_benchmarks.py` reproduces the false-positive-rate and
+detection-latency numbers that chose the detectors' default thresholds;
+`benchmarks/qml_observer_benchmark.ipynb` walks through the same results
+alongside the live "critical MVP demo". See
+[`docs/research/validation.md`](./docs/research/validation.md) for the
+full methodology and current results.
+
+## Documentation
+
+Full docs (installation, quickstart, "how to interpret alerts",
+architecture, per-detector guides, calibration methodology, and
+contributor guides) live under [`docs/`](./docs/index.md).
 
 ## Installation
 
