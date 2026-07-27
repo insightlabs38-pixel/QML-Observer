@@ -12,9 +12,6 @@ This page covers what's next, at a high level.
   finite-shots training.
 - Milestone 10: alerting (webhooks, Slack-compatible payloads, severity
   levels, deduplication, cooldowns).
-
-## Mid-term
-
 - Milestone 11: a live dashboard (loss/gradient charts, diagnosis panel,
   compute-usage panel, run history) -- intentionally *not* built before the
   detection layer is trustworthy (addendum's stated ordering).
@@ -22,9 +19,6 @@ This page covers what's next, at a high level.
   conditioning, effective rank, parameter-redundancy detection,
   Hessian-vector products, loss-landscape sampling, qubit/depth scaling
   analysis.
-
-## Long-term
-
 - Milestone 13: a recovery engine -- reinitialize parameters, reduce
   circuit depth, switch ansatz/optimizer, adjust learning rate or shot
   budget, natural-gradient methods -- ranked and tested before resuming a
