@@ -28,24 +28,18 @@ It is **not**:
 
 ## Core architecture
 
-```
-Frameworks (PennyLane | Qiskit | generic)
-        │
-        ▼
-Adapter Interface  →  Training Events
-        │
-        ▼
-Monitoring / Statistics (rolling windows, gradient/loss primitives)
-        │
-        ▼
-Detection Engine (BarrenPlateauDetector, StagnationDetector, ConvergenceDetector)
-        │
-        ▼
-Diagnosis Engine (weighted evidence → single explainable DiagnosisResult)
-        │
-        ▼
-Action / Policy (log / warn / pause / stop / adaptive → recovery, later)
-```
+<p align="center">
+  <img src="architecture/diagrams/overview_architecture.svg" alt="Detailed QML Observer architecture: framework adapters into shared event schemas, QMLMonitor, the statistics engine, detection layer, diagnosis engine, action layer, reporting layer, CLI, and the opt-in telemetry layer" width="820">
+</p>
+
+Frameworks (PennyLane, Qiskit, or a fully generic training loop) flow
+through an adapter into the shared `TrainingEvent` schema, then through
+`QMLMonitor` into the statistics engine, the detection layer
+(`BarrenPlateauDetector`, `StagnationDetector`, `ConvergenceDetector`),
+the diagnosis engine (weighted evidence -> one explainable
+`DiagnosisResult`), and finally the action layer (log / warn / pause* /
+stop / adaptive). An optional, disabled-by-default telemetry layer sits
+alongside this path -- see the diagram's dashed/dotted edges.
 
 See [`architecture/overview.md`](architecture/overview.md) for the full
 layer-by-layer breakdown.

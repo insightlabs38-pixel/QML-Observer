@@ -1,0 +1,45 @@
+// QML Observer -- simple pipeline diagram for README.md
+// Render: dot -Tsvg readme_architecture.dot -o readme_architecture.svg
+digraph qml_observer_readme {
+    rankdir = TB;
+    bgcolor = "transparent";
+    nodesep = 0.35;
+    ranksep = 0.45;
+    node [
+        fontname = "Helvetica,Arial,sans-serif",
+        fontsize = 13,
+        shape = box,
+        style = "rounded,filled",
+        color = "#5b6b7a",
+        fillcolor = "#eef2f7",
+        fontcolor = "#1f2933",
+        penwidth = 1.2,
+        width = 2.6,
+        height = 0.55,
+        margin = "0.18,0.10"
+    ];
+    edge [
+        color = "#7b8794",
+        arrowsize = 0.8,
+        penwidth = 1.2
+    ];
+
+    sources   [label = "Training loop\n(PennyLane · Qiskit · generic)"];
+    adapter   [label = "Adapter"];
+    monitor   [label = "QMLMonitor.update()"];
+    detectors [label = "Detectors\n(gradient · loss statistics)"];
+    diagnosis [label = "Diagnosis Engine\n(DiagnosisResult)", fillcolor = "#e9e3f5", color = "#7a5ea8"];
+    policy    [label = "Action Policy", fillcolor = "#e9e3f5", color = "#7a5ea8"];
+
+    sources -> adapter -> monitor -> detectors -> diagnosis -> policy;
+
+    node [width = 0.95, height = 0.5, fontsize = 12];
+    log  [label = "Log",  fillcolor = "#e3eee6", color = "#4f8a5b"];
+    warn [label = "Warn", fillcolor = "#fbf1d6", color = "#b8912f"];
+    stop [label = "Stop", fillcolor = "#f8e0df", color = "#b8514a"];
+
+    { rank = same; log; warn; stop; }
+    policy -> log;
+    policy -> warn;
+    policy -> stop;
+}

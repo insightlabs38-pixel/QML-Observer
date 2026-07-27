@@ -1,0 +1,229 @@
+// QML Observer -- detailed architecture diagram for docs/architecture/overview.md
+// Render: dot -Tsvg overview_architecture.dot -o overview_architecture.svg
+digraph qml_observer_overview {
+    rankdir = TB;
+    bgcolor = "transparent";
+    compound = true;
+    fontname = "Helvetica,Arial,sans-serif";
+    nodesep = 0.30;
+    ranksep = 0.55;
+    labelloc = "t";
+    fontsize = 15;
+
+    node [
+        fontname = "Helvetica,Arial,sans-serif",
+        fontsize = 12,
+        shape = box,
+        style = "rounded,filled",
+        penwidth = 1.1,
+        margin = "0.15,0.08"
+    ];
+    edge [
+        color = "#7b8794",
+        arrowsize = 0.75,
+        penwidth = 1.1,
+        fontname = "Helvetica,Arial,sans-serif",
+        fontsize = 10,
+        fontcolor = "#3e4c59"
+    ];
+
+    // ---------------------------------------------------------------
+    // Layer 1: frameworks + adapters
+    // ---------------------------------------------------------------
+    subgraph cluster_adapters {
+        label = "1. Framework adapter layer  (qml_observer.adapters)";
+        style = "rounded";
+        color = "#8aa9c9";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#eef4fa";
+
+        pennylane [label = "PennyLane\nQNode / tape", fillcolor = "#ffffff", color = "#5b7fa6"];
+        qiskit    [label = "Qiskit\nQuantumCircuit / VQC", fillcolor = "#ffffff", color = "#5b7fa6"];
+        generic   [label = "Generic\n(manual values)", fillcolor = "#ffffff", color = "#5b7fa6"];
+
+        pl_adapter  [label = "PennyLaneAdapter"];
+        qk_adapter  [label = "QiskitAdapter"];
+        gen_adapter [label = "GenericAdapter"];
+
+        pennylane -> pl_adapter;
+        qiskit    -> qk_adapter;
+        generic   -> gen_adapter;
+    }
+
+    // ---------------------------------------------------------------
+    // Layer 2: event schemas
+    // ---------------------------------------------------------------
+    subgraph cluster_schemas {
+        label = "2. Event schemas  (qml_observer.schemas)";
+        style = "rounded";
+        color = "#8aa9c9";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#eef4fa";
+
+        events [
+            label = "TrainingEvent\nGradientSnapshot · CircuitMetadata\nOptimizerMetadata",
+            fillcolor = "#ffffff", color = "#5b7fa6"
+        ];
+    }
+
+    pl_adapter  -> events [ltail = cluster_adapters, lhead = cluster_schemas, style = invis];
+    pl_adapter -> events;
+    qk_adapter -> events;
+    gen_adapter -> events;
+
+    // ---------------------------------------------------------------
+    // Core: QMLMonitor
+    // ---------------------------------------------------------------
+    monitor [
+        label = "QMLMonitor.update() / finish()\n(qml_observer.core)\nRunState · fail-open error handling",
+        shape = box, style = "rounded,filled",
+        fillcolor = "#fdf0da", color = "#c48a2e",
+        fontsize = 13, penwidth = 1.6, width = 3.6
+    ];
+    events -> monitor;
+
+    // ---------------------------------------------------------------
+    // Layer 3: statistics
+    // ---------------------------------------------------------------
+    subgraph cluster_stats {
+        label = "3. Statistics engine  (qml_observer.statistics)";
+        style = "rounded";
+        color = "#9bb598";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#eef6ec";
+
+        rolling [label = "RollingWindow\n(mean · variance · slope)", fillcolor = "#ffffff", color = "#6a9a67"];
+        gradstats [label = "gradient_norm\ngradient_variance", fillcolor = "#ffffff", color = "#6a9a67"];
+        lossstats [label = "loss_slope\nrelative_loss_improvement", fillcolor = "#ffffff", color = "#6a9a67"];
+    }
+    monitor -> rolling;
+    monitor -> gradstats;
+    monitor -> lossstats;
+
+    // ---------------------------------------------------------------
+    // Layer 4: detectors
+    // ---------------------------------------------------------------
+    subgraph cluster_detectors {
+        label = "4. Detection layer  (qml_observer.detectors)";
+        style = "rounded";
+        color = "#c9a86a";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#faf3e6";
+
+        bp   [label = "BarrenPlateauDetector", fillcolor = "#ffffff", color = "#a97e2f"];
+        stag [label = "StagnationDetector", fillcolor = "#ffffff", color = "#a97e2f"];
+        conv [label = "ConvergenceDetector", fillcolor = "#ffffff", color = "#a97e2f"];
+    }
+    rolling -> bp; rolling -> stag; rolling -> conv;
+    gradstats -> bp;
+    lossstats -> stag; lossstats -> conv;
+
+    // ---------------------------------------------------------------
+    // Layer 5: diagnosis engine
+    // ---------------------------------------------------------------
+    subgraph cluster_diagnosis {
+        label = "5. Diagnosis engine  (qml_observer.diagnosis)";
+        style = "rounded";
+        color = "#a98cc0";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#f2ecf7";
+
+        scoring [label = "combine_detector_results()\n(weighted evidence, deterministic)", fillcolor = "#ffffff", color = "#7a5ea8"];
+        explain [label = "explanations.py\n(human-readable evidence)", fillcolor = "#ffffff", color = "#7a5ea8"];
+        diagnosisresult [
+            label = "DiagnosisResult\nissue · confidence · degraded",
+            fillcolor = "#f2ecf7", color = "#7a5ea8", penwidth = 1.4
+        ];
+    }
+    bp -> scoring; stag -> scoring; conv -> scoring;
+    scoring -> explain -> diagnosisresult;
+
+    // ---------------------------------------------------------------
+    // Layer 6: action layer
+    // ---------------------------------------------------------------
+    subgraph cluster_actions {
+        label = "6. Action layer  (qml_observer.actions)";
+        style = "rounded";
+        color = "#c98f8c";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#fbeeed";
+
+        actionpolicy [label = "ActionPolicy\n(log · warn · pause* · stop · adaptive)"];
+        logaction  [label = "LogAction",  fillcolor = "#e3eee6", color = "#4f8a5b"];
+        alertaction [label = "AlertAction\n(warn / pause*)", fillcolor = "#fbf1d6", color = "#b8912f"];
+        stopaction [label = "StopAction", fillcolor = "#f8e0df", color = "#b8514a"];
+
+        actionpolicy -> logaction;
+        actionpolicy -> alertaction;
+        actionpolicy -> stopaction;
+    }
+    diagnosisresult -> actionpolicy;
+
+    // ---------------------------------------------------------------
+    // Layer 7: reporting
+    // ---------------------------------------------------------------
+    subgraph cluster_reporting {
+        label = "7. Reporting layer  (qml_observer.reporting)";
+        style = "rounded";
+        color = "#8aa9c9";
+        fontsize = 12; fontcolor = "#1f2933";
+        bgcolor = "#eef4fa";
+
+        reporter [label = "RunReporter", fillcolor = "#ffffff", color = "#5b7fa6"];
+        jsonl    [label = "JSONL event /\ndiagnosis log", fillcolor = "#ffffff", color = "#5b7fa6"];
+        summary  [label = "run summary +\ncompute-saved estimate", fillcolor = "#ffffff", color = "#5b7fa6"];
+
+        reporter -> jsonl;
+        reporter -> summary;
+    }
+    monitor -> reporter [label = "  events + diagnoses", style = dashed];
+    diagnosisresult -> reporter [style = dashed];
+
+    // ---------------------------------------------------------------
+    // Layer 8: CLI
+    // ---------------------------------------------------------------
+    cli [
+        label = "8. CLI  (qml_observer.cli)\nqml-observer {inspect,report,telemetry}",
+        shape = box, style = "rounded,filled",
+        fillcolor = "#eef4fa", color = "#5b7fa6"
+    ];
+    jsonl -> cli;
+    summary -> cli;
+
+    // ---------------------------------------------------------------
+    // Telemetry (opt-in, off by default)
+    // ---------------------------------------------------------------
+    subgraph cluster_telemetry {
+        label = "Telemetry  (qml_observer.telemetry) -- opt-in, disabled by default";
+        style = "rounded,dashed";
+        color = "#9aa5b1";
+        fontsize = 12; fontcolor = "#52606d";
+        bgcolor = "#f5f7fa";
+
+        consent   [label = "consent.py\n(persisted opt-in)", fillcolor = "#ffffff", color = "#7b8794"];
+        collector [label = "TelemetryCollector\n(local queue or endpoint)", fillcolor = "#ffffff", color = "#7b8794"];
+    }
+    monitor -> collector [
+        label = "  anonymized record\n  iff enabled",
+        style = dashed, color = "#9aa5b1", fontcolor = "#52606d"
+    ];
+    consent -> collector [style = dotted, dir = back, color = "#9aa5b1"];
+
+    // Legend
+    subgraph cluster_legend {
+        label = "Legend";
+        style = "rounded";
+        color = "#c4cdd5";
+        fontsize = 11; fontcolor = "#52606d";
+        rank = sink;
+        node [shape = plaintext, fontsize = 10];
+        legend [label =
+            <<table border="0" cellspacing="4" cellborder="0">
+              <tr><td align="left">──▶ solid</td><td align="left">direct call / data flow</td></tr>
+              <tr><td align="left">- - ▶ dashed</td><td align="left">optional / conditional flow</td></tr>
+              <tr><td align="left">···▶ dotted</td><td align="left">gates whether the flow occurs</td></tr>
+              <tr><td align="left">*</td><td align="left">"pause" currently behaves as "warn" (Milestone 13)</td></tr>
+            </table>>
+        ];
+    }
+}
