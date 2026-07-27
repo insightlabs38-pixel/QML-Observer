@@ -1,8 +1,8 @@
 # Development setup
 
 ```bash
-git clone https://github.com/qml-observer/qml-observer
-cd qml-observer
+git clone https://github.com/insightlabs38-pixel/QML-Observer
+cd QML-Observer
 pip install -e ".[dev]"
 pre-commit install
 ```

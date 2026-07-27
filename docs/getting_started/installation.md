@@ -1,11 +1,17 @@
 # Installation
 
-QML Observer is still pre-1.0 (`Development Status :: 2 - Pre-Alpha`) and
-is not yet published to PyPI. Install from a clone of the repository:
+QML Observer is in public beta (`0.1.0`, `Development Status :: 4 - Beta`)
+and is published on PyPI:
 
 ```bash
-git clone https://github.com/qml-observer/qml-observer
-cd qml-observer
+pip install qml-observer
+```
+
+For local development or to work from a checkout of the repository:
+
+```bash
+git clone https://github.com/insightlabs38-pixel/QML-Observer
+cd QML-Observer
 pip install -e .
 ```
 
@@ -18,16 +24,25 @@ pip install -e .
 ## Optional framework integrations
 
 The core package (event schemas, statistics, detectors, diagnosis, actions,
-reporting, CLI) has **no** PennyLane or Qiskit dependency -- adapters are
-opt-in extras:
+reporting, telemetry, CLI) has **no** PennyLane or Qiskit dependency --
+adapters are opt-in extras, installable directly from PyPI:
 
 ```bash
-pip install -e ".[pennylane]"   # PennyLane adapter
-pip install -e ".[qiskit]"      # Qiskit adapter (qiskit + qiskit-machine-learning)
-pip install -e ".[dev]"         # pytest, ruff, mypy, pre-commit -- for contributors
+pip install "qml-observer[pennylane]"   # PennyLane adapter
+pip install "qml-observer[qiskit]"      # Qiskit adapter (qiskit + qiskit-machine-learning)
 ```
 
-Multiple extras can be combined: `pip install -e ".[pennylane,qiskit,dev]"`.
+From a local checkout, use the editable-install form instead:
+
+```bash
+pip install -e ".[pennylane]"
+pip install -e ".[qiskit]"
+pip install -e ".[dev]"          # pytest, ruff, mypy, pre-commit -- for contributors
+```
+
+Multiple extras can be combined:
+`pip install "qml-observer[pennylane,qiskit]"` (or
+`pip install -e ".[pennylane,qiskit,dev]"` from a checkout).
 
 If you import `qml_observer.adapters.pennylane` or
 `qml_observer.adapters.qiskit` without the corresponding extra installed,
@@ -38,7 +53,18 @@ confusing failure deep in adapter internals.
 
 ```bash
 python -c "import qml_observer; print(qml_observer.__version__)"
+qml-observer --help
 ```
 
-If that prints a version string (e.g. `0.1.0`), the install worked. Next:
+The first command should print a version string (e.g. `0.1.0`); the
+second should list the CLI's subcommands (`inspect`, `report`, `run`,
+`benchmark`, `telemetry`). If both work, the install succeeded. Next:
 [`quickstart.md`](quickstart.md).
+
+## Known limitations of this release
+
+See the project [README](https://github.com/insightlabs38-pixel/QML-Observer#known-limitations)
+for the current, authoritative list (diagnoses are probabilistic rather
+than proof, `"pause"` currently behaves as `"warn"`, simulator-only,
+etc.) -- kept in one place to avoid the two copies drifting out of sync.
+
