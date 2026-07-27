@@ -206,6 +206,27 @@ between minor releases as the project incorporates community feedback;
 breaking changes will be called out in `CHANGELOG.md` rather than
 guaranteed stable per SemVer's `0.x` convention.
 
+## Beta Feedback & Survey
+
+QML Observer is currently in beta, and feedback from real users is one of the most valuable ways to improve it.
+
+If you have tried QML Observer, whether you used it in a real project, tested an example, or simply explored the documentation, I would appreciate your feedback. Your responses will help prioritize bug fixes, improve usability, strengthen detection and diagnosis, and guide future development.
+
+[Take the QML Observer Beta Feedback Survey](https://docs.google.com/forms/d/e/1FAIpQLSfCxgGpVl5sXCX9vw8tSHN6KAjqk5uukw71Kb4lsWQDHQIF1g/viewform?usp=publish-editor)
+
+The survey should take approximately 3–5 minutes to complete.
+
+The survey covers:
+
+- Your quantum ML framework and use case
+- Installation and setup experience
+- Usability and documentation
+- Detection and diagnosis results
+- Bugs, unexpected behavior, and edge cases
+- Features and improvements you would like to see next
+- What would increase your confidence in QML Observer
+- Your overall experience with the project
+
 ## License
 
 Mozilla Public License 2.0 (MPL-2.0). See [`LICENSE`](./LICENSE) and
