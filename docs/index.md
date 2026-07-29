@@ -62,6 +62,8 @@ later; there is simply no backend-specific queue/cost logic yet.
   [`integrations/pennylane.md`](integrations/pennylane.md),
   [`integrations/qiskit.md`](integrations/qiskit.md), or
   [`integrations/generic.md`](integrations/generic.md).
+- Want alerts delivered somewhere other than the terminal (Slack, a
+  custom backend)? See [`integrations/webhook.md`](integrations/webhook.md).
 - Wondering what a diagnosis means? See
   [`detectors/barren_plateau.md`](detectors/barren_plateau.md),
   [`detectors/stagnation.md`](detectors/stagnation.md), and

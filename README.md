@@ -11,11 +11,13 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** v0.2.0 — public beta. Core schemas, monitoring engine,
+> **Status:** v0.3.0 — public beta. Core schemas, monitoring engine,
 > detectors, diagnosis engine, actions, both the PennyLane and Qiskit
 > adapters, JSONL logging, run summaries, compute-saved estimation, the
-> CLI, and the calibration benchmark suite are all shipped (Milestones
-> 0–9). See `CHANGELOG.md` for the full release notes and
+> CLI, the calibration benchmark suite, and webhook alerting (including a
+> Slack-compatible formatter, alert deduplication/cooldowns, evidence
+> redaction, and a webhook-URL SSRF safeguard) are all shipped (Milestones
+> 0–10). See `CHANGELOG.md` for the full release notes and
 > `docs/roadmap.md` for what's next. **The `0.x` API is not yet stable
 > and may change without a major-version bump**, per SemVer's `0.x`
 > convention.

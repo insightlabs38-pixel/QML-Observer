@@ -17,7 +17,13 @@ This page covers what's next, at a high level.
   `NoiseDetector` doesn't shift any Milestone 7 number -- see
   `CHANGELOG.md`.
 - Milestone 10: alerting (webhooks, Slack-compatible payloads, severity
-  levels, deduplication, cooldowns).
+  levels, deduplication, cooldowns). **Complete (Issues #70-#75c)**:
+  `WebhookAction` generic webhook delivery, the structured `AlertPayload`
+  shape, a Slack-compatible formatter, severity gating reusing
+  `DiagnosisResult.severity`/`SEVERITY_RANK`, change-based alert
+  deduplication with an optional time-based cooldown, a `redact_evidence`
+  payload-redaction option, and a minimal SSRF safeguard on webhook
+  target URLs -- see `docs/integrations/webhook.md`.
 - Milestone 11: a live dashboard (loss/gradient charts, diagnosis panel,
   compute-usage panel, run history) -- intentionally *not* built before the
   detection layer is trustworthy (addendum's stated ordering).
