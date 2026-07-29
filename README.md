@@ -15,7 +15,7 @@ before expensive quantum computation is wasted.
 > detectors, diagnosis engine, actions, both the PennyLane and Qiskit
 > adapters, JSONL logging, run summaries, compute-saved estimation, the
 > CLI, and the calibration benchmark suite are all shipped (Milestones
-> 0–8). See `CHANGELOG.md` for the full release notes and
+> 0–9). See `CHANGELOG.md` for the full release notes and
 > `docs/roadmap.md` for what's next. **The `0.x` API is not yet stable
 > and may change without a major-version bump**, per SemVer's `0.x`
 > convention.
