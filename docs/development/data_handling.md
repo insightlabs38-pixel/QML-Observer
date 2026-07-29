@@ -9,7 +9,7 @@ data, metrics, or metadata leaves the machine running `qml-observer`
 unless one of the following is explicitly configured by the user:
 
 - A webhook alert channel (planned for Milestone 10 -- not yet shipped in
-  `0.1.0`). When it ships, alert payloads will support a `redact_evidence`
+  `0.2.0`). When it ships, alert payloads will support a `redact_evidence`
   option so raw evidence strings/metrics can be withheld from third-party
   services (e.g. Slack).
 - A future opt-in telemetry collector (see below).
