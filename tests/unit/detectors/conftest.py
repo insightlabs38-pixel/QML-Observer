@@ -18,6 +18,7 @@ def make_observation(
     gradient: np.ndarray | None = None,
     learning_rate: float | None = None,
     parameters=None,
+    shots: int | None = None,
 ) -> StepObservation:
     """Build a `StepObservation` with only the fields a test cares about."""
     optimizer = (
@@ -30,6 +31,7 @@ def make_observation(
         gradient=summarize_gradient(gradient) if gradient is not None else None,
         optimizer=optimizer,
         parameters=parameters,
+        shots=shots,
     )
 
 

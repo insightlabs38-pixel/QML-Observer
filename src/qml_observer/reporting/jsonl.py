@@ -19,6 +19,17 @@ enums become their `.value`, and `GradientSnapshot.values` (a numpy
 array) is included only when `include_gradient_values=True` is passed
 explicitly, since raw arrays can make logs large fast and most consumers
 only need the summary statistics.
+Milestone 15, Issue #108 (pulled forward -- see
+`future_milestones_plan.md`'s "Gaps & recommendations" #7: "worth doing
+earlier than 'hardening patch'... retrofitting a version field onto years
+of existing 0.x logs later is much more annoying than adding one now,
+before those fields exist"): every record now carries a `schema_version`
+field (`JSONL_SCHEMA_VERSION`), so a future field addition/rename to any
+record type can be distinguished from an older log without guessing from
+the field set alone. Bumping `JSONL_SCHEMA_VERSION` is itself a
+documented, versioned event -- same rule as addendum §3's threshold
+recalibration: a `CHANGELOG.md` entry and a note in this module's
+docstring for what changed and why.
 """
 
 from __future__ import annotations
@@ -41,6 +52,19 @@ from qml_observer.schemas.training import TrainingEvent
 RECORD_TYPE_EVENT = "event"
 RECORD_TYPE_DIAGNOSIS = "diagnosis"
 RECORD_TYPE_SUMMARY = "summary"
+
+#: Version of this module's JSONL record shapes (Issue #108). Bump this
+#: whenever a field is added, renamed, or removed from any record type,
+#: and add a note here plus a `CHANGELOG.md` entry explaining what changed:
+#:
+#: - `1` (Milestone 9): initial versioned schema. Introduced alongside the
+#:   `ci_lower`/`ci_upper`/`ci_level`/`ci_method` fields on the `gradient`
+#:   sub-record (Issue #69) -- there is no unversioned "version 0" log
+#:   format in the wild to stay compatible with, since this project has
+#:   not had a release since v0.1.0 shipped without a version field at
+#:   all; `read_jsonl`/the CLI treat a record with no `schema_version` key
+#:   as implicitly pre-1 (the v0.1.0 shape) for that reason.
+JSONL_SCHEMA_VERSION = 1
 
 
 def training_event_to_dict(event: TrainingEvent) -> dict[str, Any]:
@@ -78,6 +102,10 @@ def gradient_snapshot_to_dict(
         "snr": gradient.snr,
         "uncertainty": gradient.uncertainty,
         "method": gradient.method,
+        "ci_lower": gradient.ci_lower,
+        "ci_upper": gradient.ci_upper,
+        "ci_level": gradient.ci_level,
+        "ci_method": gradient.ci_method,
     }
     if include_values and gradient.values is not None:
         record["values"] = gradient.values.tolist()
@@ -139,7 +167,11 @@ def event_record(
     docstring) -- pass them when logging a full `StepObservation`
     (e.g. from `state.latest_observation`) rather than a bare `event`.
     """
-    record: dict[str, Any] = {"type": RECORD_TYPE_EVENT, **training_event_to_dict(event)}
+    record: dict[str, Any] = {
+        "type": RECORD_TYPE_EVENT,
+        "schema_version": JSONL_SCHEMA_VERSION,
+        **training_event_to_dict(event),
+    }
     if gradient is not None:
         record["gradient"] = gradient_snapshot_to_dict(
             gradient, include_values=include_gradient_values
@@ -155,7 +187,10 @@ def event_record(
 
 def diagnosis_record(diagnosis: DiagnosisResult, *, step: int | None = None) -> dict[str, Any]:
     """Build one `"diagnosis"`-type JSONL record."""
-    record: dict[str, Any] = {"type": RECORD_TYPE_DIAGNOSIS}
+    record: dict[str, Any] = {
+        "type": RECORD_TYPE_DIAGNOSIS,
+        "schema_version": JSONL_SCHEMA_VERSION,
+    }
     if step is not None:
         record["step"] = step
     record.update(diagnosis_result_to_dict(diagnosis))
@@ -166,7 +201,11 @@ def summary_record(summary: dict[str, Any]) -> dict[str, Any]:
     """Wrap a run-summary dict (see `reporting.summary.build_run_summary`
     or `reporting.reporter.RunReporter.finalize`) as a `"summary"`-type
     JSONL record, so a reader can distinguish it from per-step records."""
-    return {"type": RECORD_TYPE_SUMMARY, **summary}
+    return {
+        "type": RECORD_TYPE_SUMMARY,
+        "schema_version": JSONL_SCHEMA_VERSION,
+        **summary,
+    }
 
 
 def _json_default(obj: Any) -> Any:

@@ -12,6 +12,7 @@ from qml_observer import QMLMonitor
 from qml_observer.detectors import (
     BarrenPlateauDetector,
     ConvergenceDetector,
+    NoiseDetector,
     StagnationDetector,
 )
 from qml_observer.schemas.diagnosis import IssueType
@@ -20,6 +21,8 @@ from tests.fixtures.synthetic_runs import (
     artificial_plateau_run,
     convergence_run,
     diverging_optimizer_run,
+    finite_shots_healthy_run,
+    finite_shots_plateau_run,
     healthy_learning_run,
     noise_dominated_run,
     run_through_monitor,
@@ -35,6 +38,20 @@ def _make_monitor(policy: str = "warn") -> QMLMonitor:
             ),
             StagnationDetector(patience=20),
             ConvergenceDetector(loss_threshold=0.05, gradient_threshold=1e-3, patience=20),
+        ],
+        policy=policy,
+    )
+
+
+def _make_monitor_with_noise(policy: str = "warn") -> QMLMonitor:
+    return QMLMonitor(
+        detectors=[
+            BarrenPlateauDetector(
+                gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=20
+            ),
+            StagnationDetector(patience=20),
+            ConvergenceDetector(loss_threshold=0.05, gradient_threshold=1e-3, patience=20),
+            NoiseDetector(snr_threshold=1.0, patience=20),
         ],
         policy=policy,
     )
@@ -88,6 +105,61 @@ class TestNoiseDominated:
     def test_noise_alone_does_not_false_positive_as_stagnation(self):
         diagnosis = run_through_monitor(_make_monitor(), noise_dominated_run(seed=0))
         assert diagnosis.issue != IssueType.STAGNATION
+
+
+class TestFiniteShotsHealthy:
+    """Milestone 9, Issue #68: finite-shots false-positive fixture.
+
+    A moderate shot budget (20) applied to otherwise-healthy learning
+    dynamics must not be misdiagnosed as either a barren plateau or
+    noise-dominated -- the underlying signal is genuinely informative.
+    """
+
+    def test_not_flagged_as_barren_plateau(self):
+        diagnosis = run_through_monitor(
+            _make_monitor_with_noise(), finite_shots_healthy_run(seed=0, shots=20)
+        )
+        assert diagnosis.issue != IssueType.POSSIBLE_BARREN_PLATEAU
+
+    def test_ample_shots_not_flagged_as_noise_dominated(self):
+        diagnosis = run_through_monitor(
+            _make_monitor_with_noise(), finite_shots_healthy_run(seed=0, shots=200)
+        )
+        assert diagnosis.issue != IssueType.NOISE_DOMINATED
+
+
+class TestFiniteShotsPlateau:
+    """Milestone 9, Issue #68: finite-shots true-positive fixture.
+
+    A genuine barren-plateau-scale collapse must still be recognized as
+    `POSSIBLE_BARREN_PLATEAU` (not misread as merely noise-dominated) once
+    a finite, even small, shot budget is attached -- the collapse is real,
+    not an artifact of under-sampling.
+    """
+
+    def test_still_diagnosed_as_possible_barren_plateau(self):
+        diagnosis = run_through_monitor(
+            _make_monitor_with_noise(), finite_shots_plateau_run(seed=0, shots=20)
+        )
+        assert diagnosis.issue == IssueType.POSSIBLE_BARREN_PLATEAU
+
+    def test_not_conflated_with_noise_dominated(self):
+        diagnosis = run_through_monitor(
+            _make_monitor_with_noise(), finite_shots_plateau_run(seed=0, shots=20)
+        )
+        assert diagnosis.issue != IssueType.NOISE_DOMINATED
+
+
+class TestVeryLowShotBudget:
+    """Milestone 9, Issue #68: 'varying shot budgets' -- an otherwise-healthy
+    run estimated from a very small shot budget is exactly the scenario
+    NoiseDetector exists to flag as statistically unreliable."""
+
+    def test_very_few_shots_can_be_flagged_noise_dominated(self):
+        diagnosis = run_through_monitor(
+            _make_monitor_with_noise(), finite_shots_healthy_run(seed=0, shots=1, n_params=200)
+        )
+        assert diagnosis.issue == IssueType.NOISE_DOMINATED
 
 
 class TestStagnantOptimizer:

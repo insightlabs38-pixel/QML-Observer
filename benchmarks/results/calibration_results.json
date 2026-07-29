@@ -17,19 +17,162 @@
       "false_positive_rate": 0.0,
       "meets_target_lt_5pct": true,
       "n_false_positive": 0,
+      "n_flagged_noise_dominated": 0,
       "n_seeds": 50
     },
     "healthy_learning": {
       "false_positive_rate": 0.0,
       "meets_target_lt_5pct": true,
       "n_false_positive": 0,
+      "n_flagged_noise_dominated": 0,
       "n_seeds": 50
     },
     "noise_dominated": {
       "false_positive_rate": 0.0,
       "meets_target_lt_5pct": true,
       "n_false_positive": 0,
+      "n_flagged_noise_dominated": 0,
       "n_seeds": 50
     }
+  },
+  "noise_shot_budget": {
+    "1": {
+      "healthy": {
+        "false_positive_plateau_rate": 0.0,
+        "flagged_noise_dominated_rate": 0.9
+      },
+      "n_seeds": 50,
+      "plateau": {
+        "conflated_as_noise_only_rate": 0.02,
+        "detection_rate": 0.98
+      },
+      "shots": 1
+    },
+    "100": {
+      "healthy": {
+        "false_positive_plateau_rate": 0.0,
+        "flagged_noise_dominated_rate": 0.0
+      },
+      "n_seeds": 50,
+      "plateau": {
+        "conflated_as_noise_only_rate": 0.0,
+        "detection_rate": 1.0
+      },
+      "shots": 100
+    },
+    "1000": {
+      "healthy": {
+        "false_positive_plateau_rate": 0.0,
+        "flagged_noise_dominated_rate": 0.0
+      },
+      "n_seeds": 50,
+      "plateau": {
+        "conflated_as_noise_only_rate": 0.0,
+        "detection_rate": 1.0
+      },
+      "shots": 1000
+    },
+    "20": {
+      "healthy": {
+        "false_positive_plateau_rate": 0.0,
+        "flagged_noise_dominated_rate": 0.0
+      },
+      "n_seeds": 50,
+      "plateau": {
+        "conflated_as_noise_only_rate": 0.0,
+        "detection_rate": 1.0
+      },
+      "shots": 20
+    },
+    "5": {
+      "healthy": {
+        "false_positive_plateau_rate": 0.0,
+        "flagged_noise_dominated_rate": 0.0
+      },
+      "n_seeds": 50,
+      "plateau": {
+        "conflated_as_noise_only_rate": 0.0,
+        "detection_rate": 1.0
+      },
+      "shots": 5
+    }
+  },
+  "reconciliation_check": {
+    "after_noise_detector": {
+      "detection_latency": {
+        "detection_rate": 1.0,
+        "max_steps_to_detection": 29,
+        "median_steps_to_detection": 14.0,
+        "min_steps_to_detection": 14,
+        "n_detected": 50,
+        "n_seeds": 50,
+        "p95_steps_to_detection": 21
+      },
+      "false_positive": {
+        "convergence": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        },
+        "healthy_learning": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        },
+        "noise_dominated": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        }
+      }
+    },
+    "all_milestone_7_numbers_unchanged": true,
+    "before_noise_detector": {
+      "detection_latency": {
+        "detection_rate": 1.0,
+        "max_steps_to_detection": 29,
+        "median_steps_to_detection": 14.0,
+        "min_steps_to_detection": 14,
+        "n_detected": 50,
+        "n_seeds": 50,
+        "p95_steps_to_detection": 21
+      },
+      "false_positive": {
+        "convergence": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        },
+        "healthy_learning": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        },
+        "noise_dominated": {
+          "false_positive_rate": 0.0,
+          "meets_target_lt_5pct": true,
+          "n_false_positive": 0,
+          "n_flagged_noise_dominated": 0,
+          "n_seeds": 50
+        }
+      }
+    },
+    "detection_latency_unchanged": true,
+    "false_positive_rate_unchanged_per_fixture": {
+      "convergence": true,
+      "healthy_learning": true,
+      "noise_dominated": true
+    },
+    "n_seeds": 50
   }
 }

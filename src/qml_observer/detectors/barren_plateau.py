@@ -20,6 +20,14 @@ all to confirm stagnation, this detector never triggers, regardless of
 how small or persistent the gradient collapse is; it instead reports a
 bounded, sub-triggering confidence so the `DiagnosisEngine` can still see
 the trend without conflating "confirmed" with "grounds for suspicion".
+
+Milestone 9, Issue #69: the reported gradient norm is now accompanied by
+a 95% confidence interval (`statistics.confidence.
+attach_gradient_norm_ci`) in this detector's evidence, so a "possible
+barren plateau" report states an uncertainty band rather than a bare
+point estimate -- see that module's docstring for how the interval is
+derived and why its meaning differs depending on whether a shot count is
+available.
 """
 
 from __future__ import annotations
@@ -29,6 +37,8 @@ import math
 from qml_observer.core.events import StepObservation
 from qml_observer.core.state import RunState
 from qml_observer.detectors.base import BaseDetector, DetectorResult
+from qml_observer.schemas.gradient import GradientSnapshot
+from qml_observer.statistics.confidence import attach_gradient_norm_ci
 from qml_observer.statistics.loss import relative_loss_improvement
 from qml_observer.statistics.rolling import RollingWindow
 
@@ -103,12 +113,16 @@ class BarrenPlateauDetector(BaseDetector):
         self._gradient_variances = RollingWindow(maxlen=patience)
         self._losses = RollingWindow(maxlen=patience)
         self._consecutive_small_gradient = 0
+        self._latest_gradient: GradientSnapshot | None = None
+        self._latest_shots: int | None = None
 
     def update(self, event: StepObservation, state: RunState) -> None:
         grad = event.gradient
         if grad is not None:
             self._gradient_norms.append(grad.norm_l2)
             self._gradient_variances.append(grad.variance)
+            self._latest_gradient = grad
+            self._latest_shots = event.shots
 
             is_small = (
                 math.isfinite(grad.norm_l2)
@@ -144,6 +158,15 @@ class BarrenPlateauDetector(BaseDetector):
         evidence.append(
             f"Latest gradient norm: {latest_norm:.3e} (threshold {self._gradient_threshold:.1e})."
         )
+        if self._latest_gradient is not None:
+            with_ci = attach_gradient_norm_ci(self._latest_gradient, shots=self._latest_shots)
+            assert with_ci.ci_lower is not None
+            assert with_ci.ci_upper is not None
+            assert with_ci.ci_level is not None
+            evidence.append(
+                f"{int(with_ci.ci_level * 100)}% CI on gradient norm "
+                f"({with_ci.ci_method}): [{with_ci.ci_lower:.3e}, {with_ci.ci_upper:.3e}]."
+            )
         evidence.append(
             f"Latest gradient variance: {latest_variance:.3e} "
             f"(threshold {self._variance_threshold:.1e})."
@@ -206,3 +229,5 @@ class BarrenPlateauDetector(BaseDetector):
         self._gradient_variances.reset()
         self._losses.reset()
         self._consecutive_small_gradient = 0
+        self._latest_gradient = None
+        self._latest_shots = None
