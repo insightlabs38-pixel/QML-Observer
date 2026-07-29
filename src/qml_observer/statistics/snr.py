@@ -148,9 +148,7 @@ def estimate_measurement_uncertainty(expectation_variance: float, shots: int) ->
     if math.isnan(expectation_variance):
         return float("nan")
     if expectation_variance < 0:
-        raise ValueError(
-            f"expectation_variance must be >= 0 (or NaN), got {expectation_variance}"
-        )
+        raise ValueError(f"expectation_variance must be >= 0 (or NaN), got {expectation_variance}")
     if math.isinf(expectation_variance):
         return float("inf")
 

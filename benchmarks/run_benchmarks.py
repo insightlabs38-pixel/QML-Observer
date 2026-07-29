@@ -483,8 +483,7 @@ def run_reconciliation_check(
         },
         "false_positive_rate_unchanged_per_fixture": fp_rate_unchanged,
         "detection_latency_unchanged": latency_unchanged,
-        "all_milestone_7_numbers_unchanged": all(fp_rate_unchanged.values())
-        and latency_unchanged,
+        "all_milestone_7_numbers_unchanged": all(fp_rate_unchanged.values()) and latency_unchanged,
     }
 
 
