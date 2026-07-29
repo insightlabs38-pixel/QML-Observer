@@ -8,9 +8,13 @@ downstream ever imports PennyLane or Qiskit types directly.
   `run_id`, `step`, `loss`, `epoch`, `timestamp`, `wall_time`.
 - **`GradientSnapshot`** (`schemas/gradient.py`) -- a structured gradient
   summary: `norm_l2`, `mean_abs`, `variance`, `min_value`/`max_value`,
-  `median_abs`, optional `snr`/`uncertainty`/`method`. Built via
-  `summarize_gradient()` so detectors never touch raw gradient arrays
-  directly (keeping memory use bounded -- addendum's performance rules).
+  `median_abs`, optional `snr`/`uncertainty`/`method`, and optional
+  `ci_lower`/`ci_upper`/`ci_level`/`ci_method` (a confidence interval on
+  `norm_l2`, Milestone 9 / Issue #69, populated via
+  `statistics.confidence.attach_gradient_norm_ci`, not by
+  `summarize_gradient` itself). Built via `summarize_gradient()` so
+  detectors never touch raw gradient arrays directly (keeping memory use
+  bounded -- addendum's performance rules).
 - **`CircuitMetadata`** (`schemas/circuit.py`) -- qubit count, depth,
   parameter/gate/entangling-gate counts, ansatz name, initialization
   strategy.

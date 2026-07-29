@@ -8,7 +8,167 @@ it reaches `0.1.0`.
 
 ## [Unreleased]
 
-Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 9 onward).
+Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 10 onward).
+
+## [0.2.0] - 2026-07-28
+
+Milestone 9 complete: shot-noise-aware detection (`NoiseDetector`),
+gradient-norm confidence intervals, and the calibration/reconciliation
+work needed to ship both without silently shifting Milestone 7's
+false-positive numbers. Also includes two Milestone 15 items pulled
+forward (JSONL schema versioning, a basic performance/overhead
+benchmark) per `future_milestones_plan.md`'s own recommendation to do
+them now rather than at the end.
+
+Milestone 9 (Noise & Statistical Diagnostics), Issues #64-#68:
+
+- `qml_observer.statistics.snr`: `estimate_gradient_snr()` (Issue #64) and
+  `estimate_measurement_uncertainty()` (Issue #65), the SNR/shot-noise
+  primitives sketched (signature-only) in the blueprint. Handles zero
+  variance/std, NaN/Inf, and non-positive `shots` explicitly, per the
+  addendum §7 numerical-edge-case bar applied to every other statistics
+  module. Re-exported from `qml_observer.statistics`.
+- `qml_observer.detectors.noise.NoiseDetector` (Issue #66): reports
+  `IssueType.NOISE_DOMINATED` when a gradient's magnitude is small only
+  *relative to how few shots estimated it*, as distinct from
+  `BarrenPlateauDetector`'s "genuinely collapsed" finding. Compares
+  `GradientSnapshot.mean_abs` (a per-parameter magnitude) against a
+  per-parameter shot-noise floor derived from `GradientSnapshot.variance`
+  and the step's `shots` -- deliberately not `norm_l2`, which scales with
+  `sqrt(n_parameters)` and would make the ratio insensitive to shot count
+  for any circuit with more than a handful of parameters (see
+  `detectors/noise.py`'s module docstring for the full rationale). Steps
+  without shot-count information (`shots is None` or `<= 0`, e.g.
+  analytic/adjoint execution) are skipped entirely rather than guessed at,
+  so this detector never fires on a purely analytic run.
+- `diagnosis/scoring.py` (Issue #67): `"noise"` is now mapped to
+  `IssueType.NOISE_DOMINATED` in `ISSUE_BY_DETECTOR`, and
+  `NOISE_DOMINATED` is given priority over `POSSIBLE_BARREN_PLATEAU`
+  (below `CONVERGED`, which remains the highest-priority candidate) when
+  both trigger for the same step -- a low-SNR reading pulls the headline
+  diagnosis toward "too noisy to tell yet" rather than "confirmed
+  plateau", per addendum §3's false-positive-reduction goal. Explicit
+  tests pin this priority in `tests/unit/diagnosis/test_scoring.py`.
+- `tests/fixtures/synthetic_runs.py` (Issue #68): new
+  `finite_shots_healthy_run()`/`finite_shots_plateau_run()` generators --
+  the existing `healthy_learning_run`/`artificial_plateau_run` dynamics
+  with a configurable `shots` field attached to every step, so shot-budget
+  behavior can be tested/benchmarked in isolation from gradient-variance
+  behavior (`noise_dominated_run`, unchanged).
+- `benchmarks/run_benchmarks.py` (Issue #68): `run_noise_benchmark()`
+  sweeps shot budgets (`DEFAULT_SHOT_BUDGETS = (1, 5, 20, 100, 1000)`)
+  across the new finite-shots fixtures with the full Milestone 9 detector
+  set attached, reporting false-positive rate, plateau detection rate, and
+  plateau/noise conflation rate per shot budget. Wired into
+  `run_full_benchmark()`/the CLI by default (`--no-noise-benchmark` to
+  skip, `--snr-threshold`/`--shot-budgets` to override).
+- **Calibration finding (Issue #68):** at every shot budget from 5 upward,
+  `NoiseDetector`'s placeholder `snr_threshold=1.0` produces 0% false
+  positives on the finite-shots-healthy fixture and 0% conflation with
+  genuine plateau detection (100% plateau detection rate, unaffected). At
+  an extreme `shots=1` budget, 90% of healthy runs are (correctly)
+  flagged noise-dominated, and 2% of plateau-fixture seeds have their
+  headline diagnosis resolved to `NOISE_DOMINATED` alone for part of the
+  run rather than `POSSIBLE_BARREN_PLATEAU`, before
+  `BarrenPlateauDetector`'s own persistence window catches up -- a known,
+  documented limitation at that extreme, unrealistic budget rather than a
+  representative failure rate. `snr_threshold` ships unchanged based on
+  this data. Full results and methodology in `docs/research/validation.md`
+  and `docs/research/benchmarks.md`; raw output in
+  `benchmarks/results/calibration_results.json`.
+- Documentation: `docs/detectors/noise.md` filled in (was a placeholder
+  stub since Milestone 7); `docs/architecture/detectors.md` and
+  `docs/roadmap.md` updated to reflect Milestone 9's Issues #64-#68 as
+  shipped.
+- `examples/pennylane/noisy_training.py` updated to actually demonstrate
+  `NoiseDetector` now that it exists, replacing its prior "this gap is
+  left for Milestone 9" framing.
+
+Milestone 9, Issue #69:
+
+- `qml_observer.statistics.confidence`: `estimate_gradient_norm_ci()` (a
+  cheap O(1) analytic delta-method interval, safe on the per-step hot
+  path) and `bootstrap_gradient_norm_ci()` (a heavier, opt-in percentile-
+  bootstrap alternative for offline/exploratory use, not called
+  automatically anywhere). `attach_gradient_norm_ci()` composes the
+  analytic interval with a `GradientSnapshot`, choosing
+  `shot-noise-analytic` (via `estimate_measurement_uncertainty`) when a
+  shot count is available and falling back to `parameter-spread-analytic`
+  (derived from the gradient's own across-parameter `variance`) when it
+  isn't -- the two are deliberately not conflated, matching the same care
+  taken for `NoiseDetector`'s SNR calculation. No scipy dependency added;
+  the normal quantile function uses Peter Acklam's rational approximation.
+- `GradientSnapshot` (`schemas/gradient.py`) gains four new optional
+  fields: `ci_lower`, `ci_upper`, `ci_level`, `ci_method`. Left unset by
+  `summarize_gradient()` itself, same pattern as `snr`/`uncertainty` --
+  populated later by `attach_gradient_norm_ci()`.
+- `BarrenPlateauDetector` now attaches a 95% CI to its evidence on every
+  step a gradient is observed (`"95% CI on gradient norm (<method>):
+  [<lower>, <upper>]."`), so a "possible barren plateau" report states an
+  uncertainty band rather than a bare point estimate, per Issue #69's
+  goal. `docs/detectors/barren_plateau.md`'s evidence example updated to
+  match.
+
+Milestone 9, Issue #69b:
+
+- `benchmarks/run_benchmarks.py`: `_default_detectors()` (the canonical
+  detector set used by every calibration benchmark, including
+  `run_calibration_sweep()`'s threshold sweep) now includes `NoiseDetector`,
+  so the Milestone 7 calibration sweep actually exercises the Milestone 9
+  detector set as an input, not just the finite-shots-specific
+  `run_noise_benchmark()`.
+- New `run_reconciliation_check()`: re-runs the Milestone 7 false-positive
+  and detection-latency benchmarks with and without `NoiseDetector` in the
+  detector set, against identical seeds, and reports whether any number
+  changed -- addendum §3's explicit concern that "adding a new signal to
+  the same deterministic scoring function can shift false-positive rates
+  on the existing fixtures" checked directly rather than assumed away.
+  Wired into `run_full_benchmark()`/the CLI by default
+  (`--no-reconciliation-check` to skip).
+- **Finding:** no change. All four Milestone 7 numbers
+  (`healthy_learning`/`convergence`/`noise_dominated` false-positive
+  rates; `artificial_plateau` detection rate, median/p95 steps-to-detection)
+  are bit-for-bit identical with `NoiseDetector` included or excluded,
+  because none of those fixtures report a `shots` field and
+  `NoiseDetector` abstains on any step without one. No threshold changes
+  as a result. Full results in `docs/research/benchmarks.md` and
+  `docs/research/validation.md`; raw output in
+  `benchmarks/results/calibration_results.json`
+  (`reconciliation_check` key).
+- `ScenarioRunResult` gained a `flagged_noise` field, and
+  `run_false_positive_benchmark()`'s summary gained
+  `n_flagged_noise_dominated` per fixture, so any future change in this
+  area is visible in the benchmark output itself, not just inferred from
+  the pass/fail of the false-positive target.
+
+See `docs/roadmap.md` -- Milestone 9 (Issues #64-#69b) is now complete.
+
+Milestone 15 (pulled forward -- see `future_milestones_plan.md`'s "Gaps &
+recommendations" #5 and #7):
+
+- **Issue #108 (JSONL schema versioning).** Every JSONL record
+  (`event`/`diagnosis`/`summary`) now carries a `schema_version` field
+  (`reporting/jsonl.py::JSONL_SCHEMA_VERSION`, currently `1`). Added now,
+  alongside Milestone 9's new `GradientSnapshot` CI fields, rather than
+  retrofitted onto a larger set of historical log shapes later. While
+  implementing this, found and fixed a real bug it would have made much
+  harder to diagnose after the fact: `gradient_snapshot_to_dict()` was
+  missing the Issue #69 `ci_lower`/`ci_upper`/`ci_level`/`ci_method`
+  fields entirely, so a "possible barren plateau" report's uncertainty
+  band was silently dropped from JSONL logs even though it was present on
+  the in-memory `DiagnosisResult`/`GradientSnapshot`. Fixed alongside the
+  versioning work, with new tests pinning both.
+- **Issue #105 (performance/overhead benchmarking), basic version.** New
+  `benchmarks/run_overhead_benchmark.py`: per-step wall-clock overhead and
+  peak memory for `QMLMonitor.update()` with no detectors, the full
+  Milestone 9 four-detector set, and the same set with JSONL logging
+  enabled, over a 2000-step run. Baseline (this environment): ~1,140
+  steps/sec with the full detector set (~875µs/step), ~3,870 steps/sec
+  with none (~257µs/step), ~1,060 steps/sec with logging added on top.
+  No hard target set for v0.1 (same convention as Issue #54's detection-
+  latency benchmark) -- a 100k+-step soak test and CI-gated regression
+  tracking remain for the full Milestone 15 pass. Raw output in
+  `benchmarks/results/overhead_benchmark_results.json`.
 
 ## [0.1.0] - 2026-07-25
 

@@ -215,6 +215,77 @@ def diverging_optimizer_run(
     return steps
 
 
+def finite_shots_healthy_run(
+    n_steps: int = 60,
+    n_params: int = 10,
+    shots: int = 20,
+    seed: int = 0,
+) -> list[dict[str, Any]]:
+    """`healthy_learning_run`, but every step also reports a finite `shots`.
+
+    Milestone 9, Issue #68: the false-positive fixture for the shot-noise-
+    aware `NoiseDetector` (Milestone 9, Issue #66) -- unlike
+    `noise_dominated_run` (which varies gradient *variance* to test the
+    existing MVP detectors), this generator holds the underlying learning
+    dynamics identical to `healthy_learning_run` and varies only `shots`,
+    so it isolates exactly what changes when a real, informative gradient
+    is estimated from a small shot budget rather than analytically.
+    `shots` is exposed as a parameter specifically so benchmarks can sweep
+    it (plan.md §15's "varying shot budgets").
+    """
+    rng = np.random.default_rng(seed)
+    loss = 2.0
+    steps = []
+    for i in range(n_steps):
+        loss = max(0.05, loss * rng.uniform(0.93, 0.99))
+        gradient = rng.normal(0, max(0.05, loss * 0.3), size=n_params)
+        steps.append(
+            dict(
+                step=i,
+                loss=float(loss),
+                gradients=gradient,
+                optimizer=OptimizerMetadata(name="adam", learning_rate=0.1),
+                shots=shots,
+            )
+        )
+    return steps
+
+
+def finite_shots_plateau_run(
+    n_steps: int = 60,
+    n_params: int = 10,
+    shots: int = 20,
+    seed: int = 0,
+) -> list[dict[str, Any]]:
+    """`artificial_plateau_run`, but every step also reports a finite `shots`.
+
+    Milestone 9, Issue #68: the true-positive fixture confirming a genuine
+    barren-plateau-scale collapse is still recognizable (by
+    `BarrenPlateauDetector`) and *not* misclassified as merely
+    shot-noise-dominated (by `NoiseDetector`) once a finite shot budget is
+    in play -- the gradient's mean magnitude and its variance collapse
+    together here, so the shot-noise floor collapses proportionally too
+    (see `detectors/noise.py` module docstring for why that keeps the two
+    detectors from conflating this case).
+    """
+    rng = np.random.default_rng(seed)
+    base_loss = rng.uniform(0.6, 0.9)
+    steps = []
+    for i in range(n_steps):
+        loss = base_loss + rng.normal(0, 1e-8)
+        gradient = rng.normal(0, 1e-6, size=n_params)
+        steps.append(
+            dict(
+                step=i,
+                loss=float(loss),
+                gradients=gradient,
+                optimizer=OptimizerMetadata(name="adam", learning_rate=0.1),
+                shots=shots,
+            )
+        )
+    return steps
+
+
 #: All generators, keyed by scenario name, for parametrized test/benchmark loops.
 ALL_SCENARIOS = {
     "healthy_learning": healthy_learning_run,
@@ -223,6 +294,8 @@ ALL_SCENARIOS = {
     "noise_dominated": noise_dominated_run,
     "stagnant_optimizer": stagnant_optimizer_run,
     "diverging_optimizer": diverging_optimizer_run,
+    "finite_shots_healthy": finite_shots_healthy_run,
+    "finite_shots_plateau": finite_shots_plateau_run,
 }
 
 

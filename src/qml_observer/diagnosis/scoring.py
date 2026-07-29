@@ -57,6 +57,7 @@ ISSUE_BY_DETECTOR: dict[str, IssueType] = {
     "barren_plateau": IssueType.POSSIBLE_BARREN_PLATEAU,
     "stagnation": IssueType.STAGNATION,
     "convergence": IssueType.CONVERGED,
+    "noise": IssueType.NOISE_DOMINATED,
 }
 
 #: Confidence, per triggered issue type, at or above which the result is
@@ -166,11 +167,28 @@ def _resolve_triggered_issue(
     # it is for "collapsed". ConvergenceDetector is the one detector that
     # additionally confirms the loss is *good* in absolute terms, which is
     # why the blueprint calls this distinction "essential" -- it is the
-    # more specific, more authoritative signal whenever it fires. Ties
-    # among any remaining candidates are broken by highest combined
-    # confidence.
+    # more specific, more authoritative signal whenever it fires.
     if IssueType.CONVERGED in combined_by_issue:
         return IssueType.CONVERGED, combined_by_issue[IssueType.CONVERGED]
+
+    # NOISE_DOMINATED is given priority over POSSIBLE_BARREN_PLATEAU (but
+    # not over CONVERGED, checked above) for the same kind of reason
+    # (Milestone 9, Issue #67, addendum §3): BarrenPlateauDetector can only
+    # see "the gradient looks collapsed and the loss isn't improving",
+    # which is exactly as true for "the training signal genuinely
+    # vanished" as it is for "too few shots to tell yet". NoiseDetector is
+    # the one detector that specifically resolves that ambiguity by
+    # checking the gradient magnitude against its shot-noise floor
+    # (`statistics.snr.estimate_measurement_uncertainty`) -- so whenever it
+    # fires, it is the more specific, more authoritative explanation for
+    # *why* the gradient looks the way it does, and a low-SNR reading
+    # should pull the headline diagnosis toward NOISE_DOMINATED and away
+    # from POSSIBLE_BARREN_PLATEAU rather than the two being decided by
+    # confidence alone. Ties among any remaining candidates (i.e. neither
+    # CONVERGED nor NOISE_DOMINATED triggered) are broken by highest
+    # combined confidence.
+    if IssueType.NOISE_DOMINATED in combined_by_issue:
+        return IssueType.NOISE_DOMINATED, combined_by_issue[IssueType.NOISE_DOMINATED]
 
     issue = max(combined_by_issue, key=lambda k: combined_by_issue[k])
     return issue, combined_by_issue[issue]
