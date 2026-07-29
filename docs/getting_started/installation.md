@@ -1,6 +1,6 @@
 # Installation
 
-QML Observer is in public beta (`0.1.0`, `Development Status :: 4 - Beta`)
+QML Observer is in public beta (`0.2.0`, `Development Status :: 4 - Beta`)
 and is published on PyPI:
 
 ```bash
@@ -56,15 +56,13 @@ python -c "import qml_observer; print(qml_observer.__version__)"
 qml-observer --help
 ```
 
-The first command should print a version string (e.g. `0.1.0`); the
+The first command should print a version string (e.g. `0.2.0`); the
 second should list the CLI's subcommands (`inspect`, `report`, `run`,
 `benchmark`, `telemetry`). If both work, the install succeeded. Next:
 [`quickstart.md`](quickstart.md).
 
 ## Known limitations of this release
 
-See the project [README](https://github.com/insightlabs38-pixel/QML-Observer#known-limitations)
-for the current, authoritative list (diagnoses are probabilistic rather
+See the project [README](https://github.com/insightlabs38-pixel/QML-Observer#known-limitations) for the current, authoritative list (diagnoses are probabilistic rather
 than proof, `"pause"` currently behaves as `"warn"`, simulator-only,
 etc.) -- kept in one place to avoid the two copies drifting out of sync.
-
