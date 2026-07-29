@@ -11,7 +11,7 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** v0.1.0 — public beta. Core schemas, monitoring engine,
+> **Status:** v0.2.0 — public beta. Core schemas, monitoring engine,
 > detectors, diagnosis engine, actions, both the PennyLane and Qiskit
 > adapters, JSONL logging, run summaries, compute-saved estimation, the
 > CLI, and the calibration benchmark suite are all shipped (Milestones
