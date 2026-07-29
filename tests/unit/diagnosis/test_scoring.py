@@ -92,6 +92,43 @@ class TestConvergedPriority:
         assert result.severity == "info"
 
 
+class TestNoiseDominatedPriority:
+    """Milestone 9, Issue #67: a low-SNR reading must pull the headline
+    diagnosis toward NOISE_DOMINATED and away from POSSIBLE_BARREN_PLATEAU
+    -- a plateau and a noisy-but-healthy run must never be conflated.
+    """
+
+    def test_noise_result_maps_to_noise_dominated(self):
+        results = [_result("noise", True, 0.8, evidence=["e"], recommendations=["r"])]
+        result = combine_detector_results(results)
+        assert result.issue == IssueType.NOISE_DOMINATED
+        assert result.confidence == pytest.approx(0.8)
+
+    def test_noise_wins_over_barren_plateau_even_with_lower_confidence(self):
+        results = [
+            _result("barren_plateau", True, 0.95),
+            _result("noise", True, 0.4),
+        ]
+        result = combine_detector_results(results)
+        assert result.issue == IssueType.NOISE_DOMINATED
+        assert result.confidence == pytest.approx(0.4)
+
+    def test_converged_still_wins_over_noise(self):
+        results = [
+            _result("noise", True, 0.9),
+            _result("convergence", True, 0.5),
+        ]
+        result = combine_detector_results(results)
+        assert result.issue == IssueType.CONVERGED
+        assert result.confidence == pytest.approx(0.5)
+
+    def test_barren_plateau_alone_is_unaffected(self):
+        """Sanity check: without a noise signal, plateau detection is untouched."""
+        results = [_result("barren_plateau", True, 0.9)]
+        result = combine_detector_results(results)
+        assert result.issue == IssueType.POSSIBLE_BARREN_PLATEAU
+
+
 class TestSeverity:
     def test_high_confidence_non_converged_is_critical(self):
         results = [_result("barren_plateau", True, 0.9)]

@@ -41,10 +41,22 @@ against its threshold and the exact persistence count, e.g.:
 
 ```
 Latest gradient norm: 2.4e-9 (threshold 5.0e-06).
+95% CI on gradient norm (shot-noise-analytic): [1.8e-9, 3.0e-9].
 Latest gradient variance: 8.1e-12 (threshold 2.5e-11).
 Small-gradient condition has persisted for 240 consecutive step(s) (patience 100).
 Relative loss improvement over window: 1.2e-8 (stagnation threshold 1.0e-06).
 ```
+
+The CI line (Milestone 9, Issue #69) states an uncertainty band around
+the reported norm rather than a bare point estimate, so a "possible
+barren plateau" report doesn't imply more precision than the measurement
+actually supports. Its method label matters: `shot-noise-analytic` means
+a real measurement-uncertainty interval (a shot count was available that
+step); `parameter-spread-analytic` means a weaker interval derived from
+the gradient's own across-parameter spread (no shot count was available,
+e.g. analytic/adjoint execution) -- see
+`qml_observer.statistics.confidence`'s module docstring for the full
+derivation and why the two must be read differently.
 
 Read these before acting -- they tell you *how far* past threshold you
 are, not just that you crossed it. See

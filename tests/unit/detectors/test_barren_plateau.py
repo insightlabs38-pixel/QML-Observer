@@ -6,7 +6,49 @@ import pytest
 from qml_observer.detectors.barren_plateau import BarrenPlateauDetector
 
 
-class TestConstruction:
+class TestConfidenceIntervalEvidence:
+    """Milestone 9, Issue #69: gradient norm evidence includes a CI."""
+
+    def test_ci_evidence_present_after_first_gradient(self, run_state, obs_factory):
+        d = BarrenPlateauDetector()
+        obs = obs_factory(step=0, loss=1.0, gradient=np.array([0.1, -0.2, 0.05]))
+        run_state.record(obs)
+        d.update(obs, run_state)
+        result = d.diagnose()
+        assert any("CI on gradient norm" in line for line in result.evidence)
+
+    def test_ci_uses_shot_noise_method_when_shots_present(self, run_state, obs_factory):
+        d = BarrenPlateauDetector()
+        obs = obs_factory(step=0, loss=1.0, gradient=np.array([0.1, -0.2, 0.05]), shots=50)
+        run_state.record(obs)
+        d.update(obs, run_state)
+        result = d.diagnose()
+        assert any("shot-noise-analytic" in line for line in result.evidence)
+
+    def test_ci_uses_parameter_spread_method_without_shots(self, run_state, obs_factory):
+        d = BarrenPlateauDetector()
+        obs = obs_factory(step=0, loss=1.0, gradient=np.array([0.1, -0.2, 0.05]))
+        run_state.record(obs)
+        d.update(obs, run_state)
+        result = d.diagnose()
+        assert any("parameter-spread-analytic" in line for line in result.evidence)
+
+    def test_no_gradient_data_omits_ci_evidence(self, run_state, obs_factory):
+        d = BarrenPlateauDetector()
+        obs = obs_factory(step=0, loss=1.0)
+        run_state.record(obs)
+        d.update(obs, run_state)
+        result = d.diagnose()
+        assert not any("CI on gradient norm" in line for line in result.evidence)
+
+    def test_reset_clears_ci_tracking(self, run_state, obs_factory):
+        d = BarrenPlateauDetector()
+        obs = obs_factory(step=0, loss=1.0, gradient=np.array([0.1, -0.2, 0.05]))
+        run_state.record(obs)
+        d.update(obs, run_state)
+        d.reset()
+        result = d.diagnose()
+        assert not any("CI on gradient norm" in line for line in result.evidence)
     def test_defaults(self):
         d = BarrenPlateauDetector()
         assert d.name == "barren_plateau"
