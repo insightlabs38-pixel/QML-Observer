@@ -18,7 +18,7 @@ from benchmarks.run_benchmarks import run_calibration_sweep
 run_calibration_sweep([1e-8, 1e-7, 1e-6, 2e-6, 5e-6, 1e-5], n_seeds=50)
 ```
 
-## v0.1.0 -- `BarrenPlateauDetector.gradient_threshold`: `1e-8` → `5e-6`
+## v0.2.0 -- `BarrenPlateauDetector.gradient_threshold`: `1e-8` → `5e-6`
 
 **Why:** the blueprint's original `1e-8` placeholder achieved a 0% false
 positive rate but **also a 0% detection rate** on the `artificial_plateau`
@@ -43,7 +43,7 @@ criteria (< 5% false positives, and actually detects the fixture it's
 meant to detect), without over-widening the threshold further than
 necessary (`1e-5` gives no additional benefit at this fixture scale and
 would only reduce future headroom against genuinely-small-but-healthy
-gradients). See `research/validation.md` for the full methodology writeup
+graduients). See `research/validation.md` for the full methodology writeup
 and current acceptance-criteria status.
 
 **Also changed:** `variance_threshold`'s default is derived as
@@ -105,7 +105,7 @@ recalibration as a result of this check.
 
 **Why:** Issue #66 introduced `NoiseDetector` with a placeholder
 `snr_threshold=1.0` (addendum §3, same "placeholder, not final" status as
-every v0.1.0 detector default). Issue #68 requires the finite-shots
+every v0.2.0 detector default). Issue #68 requires the finite-shots
 fixtures needed to actually evaluate it against real shot-budget
 scenarios before deciding whether to change it.
 
