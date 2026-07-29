@@ -60,10 +60,10 @@ RECORD_TYPE_SUMMARY = "summary"
 #: - `1` (Milestone 9): initial versioned schema. Introduced alongside the
 #:   `ci_lower`/`ci_upper`/`ci_level`/`ci_method` fields on the `gradient`
 #:   sub-record (Issue #69) -- there is no unversioned "version 0" log
-#:   format in the wild to stay compatible with, since this project has
-#:   not had a release since v0.1.0 shipped without a version field at
-#:   all; `read_jsonl`/the CLI treat a record with no `schema_version` key
-#:   as implicitly pre-1 (the v0.1.0 shape) for that reason.
+#:   format in the wild to stay compatible with, since v0.1.0 shipped
+#:   without a version field and v0.2.0 introduced the first versioned
+#:   schema; `read_jsonl`/the CLI treat a record with no `schema_version`
+#:   key as implicitly pre-1 (the v0.1.0 shape) for that reason.
 JSONL_SCHEMA_VERSION = 1
 
 
