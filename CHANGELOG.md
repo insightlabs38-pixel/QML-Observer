@@ -8,7 +8,74 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
-Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 10 onward).
+Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 11 onward).
+
+## [0.3.0] - 2026-07-29
+
+Milestone 10 (Alerting), Issues #70-#75c -- **complete**:
+
+- `qml_observer.integrations.webhook.WebhookAction` (Issue #70): a new
+  `Action` that POSTs a structured alert to a configured webhook URL,
+  using only `urllib.request` (stdlib) -- no new HTTP-client dependency.
+  Fail-open like every other `Action`: a network failure, timeout, or
+  non-2xx response is caught and reported via `ActionResult(executed=
+  False, ...)`, never raised into the caller's training loop.
+- `qml_observer.integrations.payloads.AlertPayload`/`build_alert_payload()`
+  (Issue #71): the structured, channel-agnostic alert shape plan.md §24
+  asks for -- run ID, severity, issue, confidence, current metrics,
+  evidence, recommendations, and the addendum §1 `degraded` flag. Since
+  `Action.execute()` only receives a bare `DiagnosisResult` (no run
+  identity/live-metrics of its own), `WebhookAction` accepts optional
+  `run_id_provider`/`metrics_provider` callables to populate those fields
+  without changing the shared `Action` interface.
+- `qml_observer.integrations.formatters.slack_formatter` (Issue #72):
+  reshapes an `AlertPayload` into Slack's incoming-webhook JSON body
+  (`text` + colored `attachments`) -- a plain dict matching that shape,
+  not a `slack_sdk` dependency. `default_formatter` posts the raw
+  payload unchanged and remains `WebhookAction`'s default.
+- `qml_observer.integrations.payloads.SEVERITY_RANK` (Issue #73): an
+  ordering over the *existing* `DiagnosisResult.severity`/
+  `SEVERITY_LEVELS` vocabulary (`info < warning < critical`), not a new
+  severity type -- used by `WebhookAction(min_severity=...)` to skip
+  low-severity diagnoses, mirroring `AlertAction` skipping `"info"`.
+- Alert deduplication (Issue #74): `WebhookAction` only delivers when
+  `(issue, severity, degraded)` differs from the last alert it actually
+  sent, so a persistent, unresolved condition under `policy="warn"`
+  fires the webhook once rather than once per `update()` call for the
+  entire duration; any genuine change re-fires immediately.
+  `deduplicate=False` disables this; `reset()` clears the memory.
+- Alert cooldowns (Issue #75): a new `cooldown_seconds` option relaxes
+  Issue #74's permanent suppression into a periodic re-send -- an
+  unresolved condition re-notifies at most once every `cooldown_seconds`
+  instead of staying silent indefinitely. `cooldown_seconds=None` (the
+  default) keeps the original Issue #74 behavior.
+- `redact_evidence` payload redaction (Issue #75b): `WebhookAction(
+  redact_evidence=True)` strips `evidence`/`current_metrics` from the
+  payload before it's formatted and sent, via the new
+  `qml_observer.integrations.payloads.redact_payload()`. The payload
+  still carries `AlertPayload.redacted=True` explicitly, so a receiving
+  service can tell "withheld" apart from "nothing to report" --
+  `slack_formatter` renders this as an explicit note rather than just
+  omitting fields. Fulfills the redaction option already promised in
+  `docs/development/data_handling.md` since `0.1.0`.
+- Webhook URL SSRF safeguard (Issue #75c): `qml_observer.integrations.
+  security.check_webhook_url()` (used by `WebhookAction.__init__`)
+  refuses non-`http(s)` schemes and obviously internal-looking hosts
+  (`localhost`, loopback/link-local/private IP ranges, including cloud
+  metadata addresses like `169.254.169.254`) unless the caller passes
+  `allow_internal_targets=True`. Documented as a minimal, DNS-free
+  safeguard, not full SSRF protection -- see `SECURITY.md` and
+  `qml_observer.integrations.security`'s module docstring for the
+  explicit residual-risk boundary (no DNS resolution, no redirect
+  re-validation).
+- New example: `examples/generic/webhook_alerting.py` -- a self-contained,
+  no-external-service demo (spins up a local `http.server` receiver) of a
+  synthetic-plateau run under `policy="warn"` alerting exactly once via
+  `WebhookAction` despite the condition persisting for dozens of steps.
+- New docs: `docs/integrations/webhook.md`; `docs/architecture/actions.md`
+  gained a "Webhook alerting" section; `SECURITY.md` and
+  `docs/development/data_handling.md` updated for the shipped
+  redaction option and SSRF safeguard.
 
 ## [0.2.0] - 2026-07-28
 

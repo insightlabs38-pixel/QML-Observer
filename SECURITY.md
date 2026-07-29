@@ -28,3 +28,13 @@ We aim to acknowledge reports within a few business days.
   shipped) will run plugins in-process with no sandboxing. This is a
   known, accepted, and explicitly documented tradeoff for a research
   tool, not a vulnerability to report.
+- `WebhookAction` (Milestone 10) POSTs to a user-supplied URL. By default
+  it refuses obviously internal-looking targets (`localhost`, loopback,
+  link-local, and private-range addresses) as a minimal SSRF safeguard;
+  `allow_internal_targets=True` opts out for local development. This is a
+  literal-IP/hostname check only -- it does not resolve DNS and does not
+  re-validate HTTP redirect targets, so it does not protect against DNS
+  rebinding or a redirect to an internal address. See
+  `qml_observer.integrations.security` for exactly what it does and does
+  not cover. If you embed `WebhookAction` behind a service that accepts a
+  webhook URL from an untrusted caller, do not rely on this check alone.
