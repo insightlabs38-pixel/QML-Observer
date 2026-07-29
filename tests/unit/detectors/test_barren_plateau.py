@@ -49,6 +49,7 @@ class TestConfidenceIntervalEvidence:
         d.reset()
         result = d.diagnose()
         assert not any("CI on gradient norm" in line for line in result.evidence)
+
     def test_defaults(self):
         d = BarrenPlateauDetector()
         assert d.name == "barren_plateau"
