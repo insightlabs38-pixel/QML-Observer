@@ -43,7 +43,7 @@ criteria (< 5% false positives, and actually detects the fixture it's
 meant to detect), without over-widening the threshold further than
 necessary (`1e-5` gives no additional benefit at this fixture scale and
 would only reduce future headroom against genuinely-small-but-healthy
-graduients). See `research/validation.md` for the full methodology writeup
+gradients). See `research/validation.md` for the full methodology writeup
 and current acceptance-criteria status.
 
 **Also changed:** `variance_threshold`'s default is derived as
