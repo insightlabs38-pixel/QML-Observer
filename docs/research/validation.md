@@ -97,3 +97,95 @@ Raw output: `benchmarks/results/calibration_results.json` (regenerate with
 Any future change to these defaults must update this page's results table
 and add an entry to `research/benchmarks.md` plus a `CHANGELOG.md` entry,
 per addendum §3.
+
+## Milestone 9: `NoiseDetector` / finite-shots calibration (Issues #64-#68)
+
+**Acceptance criteria (addendum §3, applied to the new detector):**
+- False-positive rate (misdiagnosed as `POSSIBLE_BARREN_PLATEAU`) on the
+  `finite_shots_healthy` fixture: **target < 5%**.
+- `finite_shots_plateau` detection rate: **report, no hard target for
+  v0.1** -- establish a baseline, same as Issue #54.
+- New Milestone-9-specific concern: the *conflation* rate -- how often a
+  genuine plateau is reported as `NOISE_DOMINATED` only (never also
+  `POSSIBLE_BARREN_PLATEAU`) -- should be as close to 0% as practical,
+  per Issue #67's requirement that the two never be conflated.
+
+**Procedure:** `run_noise_benchmark()` (`benchmarks/run_benchmarks.py`)
+runs the full Milestone 9 detector set (`BarrenPlateauDetector`,
+`StagnationDetector`, `ConvergenceDetector`, `NoiseDetector`, all at
+`patience=15`, `NoiseDetector.snr_threshold=1.0`) against
+`finite_shots_healthy_run`/`finite_shots_plateau_run`
+(`tests/fixtures/synthetic_runs.py`, Issue #68) across a sweep of shot
+budgets, 50 seeds each.
+
+**Results** (`snr_threshold=1.0`, `patience=15`, n=50 seeds/scenario/shot-budget):
+
+| Shots | `finite_shots_healthy` false-positive (plateau) | `finite_shots_healthy` flagged `NOISE_DOMINATED` | `finite_shots_plateau` detection rate | `finite_shots_plateau` conflated as noise-only |
+|---|---|---|---|---|
+| 1 | 0.0% | 90.0% | 98.0% | 2.0% |
+| 5 | 0.0% | 0.0% | 100.0% | 0.0% |
+| 20 | 0.0% | 0.0% | 100.0% | 0.0% |
+| 100 | 0.0% | 0.0% | 100.0% | 0.0% |
+| 1000 | 0.0% | 0.0% | 100.0% | 0.0% |
+
+Raw output: `benchmarks/results/calibration_results.json`
+(`noise_shot_budget` key; regenerate with
+`python benchmarks/run_benchmarks.py --seeds 50 --json benchmarks/results/calibration_results.json`).
+
+**Findings:**
+- Across the entire swept range, `NoiseDetector`'s default
+  `snr_threshold=1.0` never produces a false-positive `POSSIBLE_BARREN_PLATEAU`
+  reading on the healthy fixture, and never prevents `BarrenPlateauDetector`
+  from detecting the genuinely-collapsed fixture -- the two detectors stay
+  well-separated at every shot budget tested.
+- At `shots=1` (a single measurement per expectation value -- an extreme,
+  almost certainly unrealistic budget in practice), 90% of otherwise-healthy
+  runs are correctly flagged `NOISE_DOMINATED` (the gradient estimate
+  genuinely is untrustworthy at that budget), and in 2% of seeds on the
+  *plateau* fixture the Issue #67 priority rule still resolves the headline
+  diagnosis to `NOISE_DOMINATED` alone rather than `POSSIBLE_BARREN_PLATEAU`
+  -- i.e. even with the priority override, an extremely small shot budget
+  can occasionally suppress the plateau reading for a step or two before
+  `BarrenPlateauDetector`'s own persistence window catches up. This is
+  noted as a known limitation below rather than hidden.
+- At `shots=5` and above, no conflation is observed in this benchmark at
+  all: the default `snr_threshold=1.0` is a reasonable initial value for
+  any shot budget realistic for near-term devices/simulators. No change to
+  the placeholder default is made based on this data alone.
+
+## Milestone 9: Issue #69b -- reconciliation check
+
+Addendum §3 warns that adding a new detector/signal to the shared scoring
+function can shift false-positive rates on fixtures that predate it, not
+just introduce a new issue type. `run_reconciliation_check()`
+(`benchmarks/run_benchmarks.py`) checks this directly: it re-runs the
+Milestone 7 false-positive/detection-latency benchmarks with and without
+`NoiseDetector` in the detector set, against the same seeds. Result: all
+four numbers (`healthy_learning`/`convergence`/`noise_dominated`
+false-positive rates, `artificial_plateau` detection rate/median/p95
+latency) are identical either way -- expected, since none of those
+fixtures report a `shots` field and `NoiseDetector` abstains without one,
+but now a checked fact rather than an assumption. Full numbers and
+rationale in `docs/research/benchmarks.md`'s Issue #69b entry.
+
+## Known limitations of the Milestone 9 validation
+
+- **Extreme shot budgets are undertested.** `shots=1` is included mainly
+  to stress-test the `NoiseDetector`/`BarrenPlateauDetector` boundary, not
+  because it's a realistic configuration; the 2% conflation rate observed
+  there should not be read as "2% of real runs will be misdiagnosed" --
+  no realistic shot budget this small was found to conflate at all.
+- **Single detector-configuration sweep.** As with the v0.1.0 sweep, only
+  `shots` was varied; `NoiseDetector.snr_threshold` and `patience` were
+  held fixed. A joint sweep is reasonable future work if real usage
+  surfaces false positives/negatives at shot budgets or thresholds outside
+  what was tested here.
+- **Synthetic fixtures, not real shot noise.** `finite_shots_healthy_run`/
+  `finite_shots_plateau_run` attach a `shots` value to gradient arrays that
+  are *not* actually resampled at that shot count -- they reuse the same
+  underlying Gaussian-generated gradients as the analytic fixtures. This
+  validates the *statistical logic* connecting `shots` to
+  `NoiseDetector`'s confidence, not whether a real finite-shots PennyLane/
+  Qiskit execution produces gradients matching this exact noise model. See
+  `examples/pennylane/noisy_training.py` for the corresponding live-circuit
+  demonstration.

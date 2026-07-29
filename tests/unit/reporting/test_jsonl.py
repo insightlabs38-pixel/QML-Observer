@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from qml_observer.reporting.jsonl import (
+    JSONL_SCHEMA_VERSION,
     JSONLWriter,
     circuit_metadata_to_dict,
     diagnosis_record,
@@ -20,6 +21,7 @@ from qml_observer.schemas.diagnosis import DiagnosisResult, IssueType
 from qml_observer.schemas.gradient import summarize_gradient
 from qml_observer.schemas.optimizer import OptimizerMetadata
 from qml_observer.schemas.training import TrainingEvent
+from qml_observer.statistics.confidence import attach_gradient_norm_ci
 
 
 def _event(step=0, loss=1.0):
@@ -89,12 +91,30 @@ class TestScalarSerialization:
         d = gradient_snapshot_to_dict(snap, include_values=True)
         assert d["values"] == [1.0, -2.0, 3.0]
 
+    def test_gradient_snapshot_to_dict_includes_ci_fields(self):
+        """Issue #69/#108: CI fields must round-trip through JSONL, same as snr/uncertainty."""
+        snap = attach_gradient_norm_ci(summarize_gradient(np.array([1.0, -2.0, 3.0])), shots=100)
+        d = gradient_snapshot_to_dict(snap)
+        assert d["ci_lower"] == pytest.approx(snap.ci_lower)
+        assert d["ci_upper"] == pytest.approx(snap.ci_upper)
+        assert d["ci_level"] == snap.ci_level
+        assert d["ci_method"] == "shot-noise-analytic"
+
+    def test_gradient_snapshot_to_dict_ci_fields_default_to_none(self):
+        snap = summarize_gradient(np.array([1.0, -2.0, 3.0]))
+        d = gradient_snapshot_to_dict(snap)
+        assert d["ci_lower"] is None
+        assert d["ci_upper"] is None
+        assert d["ci_level"] is None
+        assert d["ci_method"] is None
+
 
 class TestRecordBuilders:
     def test_event_record_minimal(self):
         record = event_record(_event())
         assert record["type"] == "event"
         assert record["run_id"] == "run-1"
+        assert record["schema_version"] == JSONL_SCHEMA_VERSION
 
     def test_event_record_with_extras(self):
         circuit = CircuitMetadata(n_qubits=2)
@@ -109,6 +129,7 @@ class TestRecordBuilders:
         assert record["type"] == "diagnosis"
         assert record["step"] == 5
         assert record["issue"] == "healthy"
+        assert record["schema_version"] == JSONL_SCHEMA_VERSION
 
     def test_diagnosis_record_step_optional(self):
         record = diagnosis_record(_diagnosis())
@@ -118,6 +139,7 @@ class TestRecordBuilders:
         record = summary_record({"run_id": "run-1", "steps": 10})
         assert record["type"] == "summary"
         assert record["run_id"] == "run-1"
+        assert record["schema_version"] == JSONL_SCHEMA_VERSION
 
 
 class TestJSONLWriterReader:

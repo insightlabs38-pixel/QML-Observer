@@ -1,0 +1,32 @@
+{
+  "no_detectors": {
+    "label": "no_detectors",
+    "n_steps": 2000,
+    "total_seconds": 0.5168806149999909,
+    "mean_us_per_step": 256.79288749986995,
+    "median_us_per_step": 239.06000001261418,
+    "p95_us_per_step": 366.7979999875115,
+    "peak_memory_kb": 137.4140625,
+    "steps_per_second": 3869.365462661112
+  },
+  "full_detector_set": {
+    "label": "full_detector_set",
+    "n_steps": 2000,
+    "total_seconds": 1.7538357759999883,
+    "mean_us_per_step": 874.4543189998097,
+    "median_us_per_step": 854.2039999781537,
+    "p95_us_per_step": 1022.2430000226268,
+    "peak_memory_kb": 152.91015625,
+    "steps_per_second": 1140.3576249091257
+  },
+  "full_detector_set_with_jsonl_logging": {
+    "label": "full_detector_set_with_jsonl_logging",
+    "n_steps": 2000,
+    "total_seconds": 1.8852590649999854,
+    "mean_us_per_step": 940.7853134995037,
+    "median_us_per_step": 919.1050000083578,
+    "p95_us_per_step": 1097.540999978719,
+    "peak_memory_kb": 146.203125,
+    "steps_per_second": 1060.8621579549415
+  }
+}

@@ -9,7 +9,13 @@ This page covers what's next, at a high level.
   **already shipped** ahead of the 0.1 release (see `CHANGELOG.md`).
 - Milestone 9: gradient SNR, shot-noise-aware `NoiseDetector`, statistical
   confidence intervals -- reducing false positives further, especially for
-  finite-shots training.
+  finite-shots training. **Complete (Issues #64-#69b)**: gradient SNR/
+  measurement-uncertainty primitives, `NoiseDetector`, diagnosis-engine
+  noise/plateau priority separation, finite-shots benchmark fixtures,
+  gradient-norm confidence intervals surfaced in `BarrenPlateauDetector`
+  evidence, and the Issue #69b reconciliation check confirming
+  `NoiseDetector` doesn't shift any Milestone 7 number -- see
+  `CHANGELOG.md`.
 - Milestone 10: alerting (webhooks, Slack-compatible payloads, severity
   levels, deduplication, cooldowns).
 - Milestone 11: a live dashboard (loss/gradient charts, diagnosis panel,
@@ -27,6 +33,28 @@ This page covers what's next, at a high level.
 - Milestone 14: broader ecosystem support -- PyTorch/JAX hybrid-workflow
   adapters, a generic autograd adapter, experiment-tracker integrations,
   and a documented third-party detector plugin API.
+- Milestone 15 (planned, pre-1.0 hardening -- see
+  `future_milestones_plan.md`): public API freeze, performance/overhead
+  benchmarking, a deliberate thread-safety decision, supply-chain
+  hardening, JSONL schema versioning, extended property-based test
+  coverage, and a full Definition-of-Done documentation audit. Per that
+  plan's own "Gaps & recommendations" section, two items are being pulled
+  forward rather than saved for this milestone:
+  - **Issue #108 (JSONL schema versioning): done.** Every JSONL record
+    (`event`/`diagnosis`/`summary`) now carries a `schema_version` field
+    (`reporting/jsonl.py::JSONL_SCHEMA_VERSION`) -- added now, alongside
+    Milestone 9's new `GradientSnapshot` CI fields, rather than
+    retrofitted onto an already-larger set of historical log shapes later.
+  - **Issue #105 (performance/overhead benchmarking): basic version done,
+    full soak-test version still pending.** See
+    `benchmarks/run_overhead_benchmark.py` for per-step overhead and
+    memory-growth numbers on a moderate-length (2000-step) run. Measured
+    baseline: ~1,140 steps/sec (~875µs/step) with the full four-detector
+    set attached, vs. ~3,870 steps/sec (~257µs/step) with none -- adding
+    JSONL logging on top costs a further ~7% (~1,060 steps/sec). No hard
+    target is set for v0.1 (same convention as Issue #54); a 100k+-step
+    soak test and CI-gated regression tracking remain for the full
+    Milestone 15 pass.
 
 ## Hardware integration (funding-dependent)
 

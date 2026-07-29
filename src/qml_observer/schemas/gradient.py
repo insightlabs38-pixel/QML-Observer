@@ -45,6 +45,19 @@ class GradientSnapshot:
             populated by the statistics engine).
         method: Name of the gradient computation method (e.g.
             "parameter-shift", "adjoint", "finite-difference"), if known.
+        ci_lower: Lower bound of a confidence interval on `norm_l2`, if
+            available (populated by `statistics.confidence.
+            attach_gradient_norm_ci`, Milestone 9 / Issue #69 -- not by
+            `summarize_gradient` itself, matching `snr`/`uncertainty`).
+        ci_upper: Upper bound of that same confidence interval.
+        ci_level: Confidence level the interval was computed at (e.g.
+            `0.95`), if available.
+        ci_method: How the interval was derived -- e.g.
+            `"shot-noise-analytic"` (when a shot count was available) or
+            `"parameter-spread-analytic"` (when it was not; see
+            `statistics/confidence.py`'s module docstring for why these
+            are different uncertainty statements and must not be
+            conflated when read).
     """
 
     values: np.ndarray | None
@@ -57,6 +70,10 @@ class GradientSnapshot:
     snr: float | None = None
     uncertainty: float | None = None
     method: str | None = None
+    ci_lower: float | None = None
+    ci_upper: float | None = None
+    ci_level: float | None = None
+    ci_method: str | None = None
 
     def __post_init__(self) -> None:
         if self.values is not None:
@@ -79,6 +96,22 @@ class GradientSnapshot:
         check_non_negative_number(self.uncertainty, "uncertainty")
         if self.method is not None:
             check_type(self.method, str, "method")
+
+        check_non_negative_number(self.ci_lower, "ci_lower")
+        check_non_negative_number(self.ci_upper, "ci_upper")
+        if (
+            self.ci_lower is not None
+            and self.ci_upper is not None
+            and not (math.isnan(self.ci_lower) or math.isnan(self.ci_upper))
+            and self.ci_lower > self.ci_upper
+        ):
+            raise ValueError(f"ci_lower ({self.ci_lower}) must be <= ci_upper ({self.ci_upper})")
+        if self.ci_level is not None:
+            check_type(self.ci_level, (int, float), "ci_level")
+            if not (0.0 < self.ci_level < 1.0):
+                raise ValueError(f"ci_level must be in (0, 1), got {self.ci_level}")
+        if self.ci_method is not None:
+            check_type(self.ci_method, str, "ci_method")
 
 
 def summarize_gradient(

@@ -10,6 +10,7 @@ for combining their outputs.
 MVP detectors (Milestone 4): `BarrenPlateauDetector`, `StagnationDetector`,
 `ConvergenceDetector` -- see `docs/detectors/*.md` for what each one
 actually checks and how to interpret its evidence. `NoiseDetector`
-(gradient SNR-aware) ships in Milestone 9.
+(gradient SNR-aware, shot-budget-aware) shipped in Milestone 9
+(Issue #66).
 
 See `docs/development/adding_detectors.md` for how to add a new one.

@@ -1,25 +1,24 @@
-"""Milestone 6, Issue #46: shot-noise-dominated training example.
+"""Milestone 6/9, Issue #46 & #66: shot-noise-dominated training example.
 
 Trains the same simple ansatz twice: once with analytic (`shots=None`)
-gradients, once with a small finite-shots budget. This is *not* a
-NoiseDetector demo -- that detector is Milestone 9 (Issue #66) and
-doesn't exist yet. What this script demonstrates instead, using only
-statistics that are actually implemented today (Milestone 3:
-`gradient_norm`, `gradient_variance`):
+gradients, once with a small finite-shots budget. Demonstrates:
 
   * Per-step gradient statistics are visibly noisier under a small shot
     budget than under analytic simulation, even though both are
-    converging toward the same optimum.
+    converging toward the same optimum (Milestone 3:
+    `gradient_norm`, `gradient_variance`).
   * The already-implemented detectors (`BarrenPlateauDetector`,
     `StagnationDetector`) require a *persistent*, multi-step condition
     (see `patience`) before triggering, precisely so that noisy-but-real
-    single-step gradients don't get misdiagnosed as a plateau. This is
-    the mechanism the addendum's calibration methodology (§3) exists to
-    tune -- and the future gap this example intentionally leaves open
-    is *quantifying* the shot budget against measurement uncertainty
-    (`estimate_measurement_uncertainty`, `NoiseDetector`), which needs
-    the Milestone 9 statistics/detector work this example is not
-    substituting for.
+    single-step gradients don't get misdiagnosed as a plateau.
+  * `NoiseDetector` (Milestone 9, Issue #66) is now attached alongside
+    them: it explicitly checks the observed gradient magnitude against
+    the shot-noise floor implied by this run's shot budget
+    (`estimate_measurement_uncertainty`), rather than relying only on the
+    other detectors' persistence windows to avoid a false positive. The
+    analytic run never triggers it at all (no shot-count information to
+    evaluate); the finite-shots run's `NoiseDetector` evidence shows
+    exactly how close to that floor its gradient estimates are.
 
 Run with:
     python examples/pennylane/noisy_training.py
@@ -36,6 +35,7 @@ from qml_observer import QMLMonitor
 from qml_observer.adapters.pennylane.adapter import PennyLaneAdapter
 from qml_observer.detectors.barren_plateau import BarrenPlateauDetector
 from qml_observer.detectors.convergence import ConvergenceDetector
+from qml_observer.detectors.noise import NoiseDetector
 from qml_observer.detectors.stagnation import StagnationDetector
 from qml_observer.statistics.gradients import gradient_norm, gradient_variance
 
@@ -68,6 +68,7 @@ def _detectors() -> list:
         BarrenPlateauDetector(patience=PATIENCE),
         StagnationDetector(patience=PATIENCE),
         ConvergenceDetector(patience=PATIENCE, loss_threshold=1e-2),
+        NoiseDetector(patience=PATIENCE),
     ]
 
 
@@ -108,13 +109,18 @@ def main() -> None:
 
     print(
         f"\n{'=' * 60}\n"
-        "Note: both runs use the *same* detectors/thresholds tuned for "
-        "analytic simulation. The finite-shots run's per-step gradient "
-        "statistics are visibly noisier, but neither run should be "
-        "misdiagnosed as a plateau, since a single noisy step never "
-        "satisfies the patience-window persistence requirement on its "
-        "own. Making that guarantee robust across arbitrary shot budgets "
-        "is exactly the Milestone 9 noise-aware diagnostics work.\n"
+        "Note: both runs use the *same* detectors/thresholds, including "
+        "NoiseDetector. The analytic run never reports NOISE_DOMINATED, "
+        "since a step with shots=None carries no shot-count information "
+        "for NoiseDetector to evaluate at all -- see "
+        "qml_observer.detectors.noise for why that's the correct behavior, "
+        "not a gap. The finite-shots run's per-step gradient statistics "
+        "are visibly noisier, and its NoiseDetector evidence shows how "
+        "close its gradient estimates sit to this run's shot-noise floor; "
+        "neither run should be misdiagnosed as a plateau, since the "
+        "diagnosis engine gives NOISE_DOMINATED priority over "
+        "POSSIBLE_BARREN_PLATEAU whenever both could apply (Milestone 9, "
+        "Issue #67).\n"
         f"{'=' * 60}"
     )
 

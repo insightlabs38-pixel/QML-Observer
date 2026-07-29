@@ -102,3 +102,44 @@ class TestGradientSnapshotValidation:
     def test_negative_uncertainty_raises(self):
         with pytest.raises(ValueError, match="uncertainty"):
             GradientSnapshot(**self._kwargs(uncertainty=-0.01))
+
+    def test_valid_ci_fields(self):
+        snap = GradientSnapshot(
+            **self._kwargs(ci_lower=0.5, ci_upper=1.5, ci_level=0.95, ci_method="analytic")
+        )
+        assert snap.ci_lower == 0.5
+        assert snap.ci_upper == 1.5
+        assert snap.ci_level == 0.95
+        assert snap.ci_method == "analytic"
+
+    def test_negative_ci_lower_raises(self):
+        with pytest.raises(ValueError, match="ci_lower"):
+            GradientSnapshot(**self._kwargs(ci_lower=-0.1, ci_upper=1.0))
+
+    def test_negative_ci_upper_raises(self):
+        with pytest.raises(ValueError, match="ci_upper"):
+            GradientSnapshot(**self._kwargs(ci_lower=0.1, ci_upper=-1.0))
+
+    def test_ci_lower_greater_than_ci_upper_raises(self):
+        with pytest.raises(ValueError, match="ci_lower"):
+            GradientSnapshot(**self._kwargs(ci_lower=2.0, ci_upper=1.0))
+
+    def test_nan_ci_bounds_skip_ordering_check(self):
+        GradientSnapshot(**self._kwargs(ci_lower=float("nan"), ci_upper=1.0))
+
+    def test_ci_level_out_of_range_raises(self):
+        with pytest.raises(ValueError, match="ci_level"):
+            GradientSnapshot(**self._kwargs(ci_level=1.5))
+        with pytest.raises(ValueError, match="ci_level"):
+            GradientSnapshot(**self._kwargs(ci_level=0.0))
+
+    def test_ci_method_must_be_str(self):
+        with pytest.raises(TypeError, match="ci_method"):
+            GradientSnapshot(**self._kwargs(ci_method=123))
+
+    def test_ci_fields_default_to_none(self):
+        snap = GradientSnapshot(**self._kwargs())
+        assert snap.ci_lower is None
+        assert snap.ci_upper is None
+        assert snap.ci_level is None
+        assert snap.ci_method is None
