@@ -26,7 +26,11 @@ This page covers what's next, at a high level.
   target URLs -- see `docs/integrations/webhook.md`.
 - Milestone 11: a live dashboard (loss/gradient charts, diagnosis panel,
   compute-usage panel, run history) -- intentionally *not* built before the
-  detection layer is trustworthy (addendum's stated ordering).
+  detection layer is trustworthy (addendum's stated ordering). **Complete:**
+  Issues #76-#82b (architecture scaffold, loss chart, gradient chart,
+  diagnosis panel, compute-usage panel, run history, data export, and the
+  refuse-by-default non-loopback hardening) are implemented as the optional
+  `qml-observer[dashboard]` extra -- see `docs/architecture/dashboard.md`.
 - Milestone 12: research-grade diagnostics -- QFIM estimation and
   conditioning, effective rank, parameter-redundancy detection,
   Hessian-vector products, loss-landscape sampling, qubit/depth scaling

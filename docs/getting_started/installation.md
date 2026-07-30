@@ -1,6 +1,6 @@
 # Installation
 
-QML Observer is in public beta (`0.3.0`, `Development Status :: 4 - Beta`)
+QML Observer is in public beta (`0.4.0`, `Development Status :: 4 - Beta`)
 and is published on PyPI:
 
 ```bash
@@ -49,6 +49,24 @@ If you import `qml_observer.adapters.pennylane` or
 you'll get a clear `ImportError` naming the missing package rather than a
 confusing failure deep in adapter internals.
 
+## Optional dashboard (Milestone 11)
+
+A read-only web dashboard (loss/gradient charts, diagnosis panel,
+compute-usage panel -- see `docs/architecture/dashboard.md`) ships as a
+separate optional extra, since most users won't need it for scripted/CI
+runs:
+
+```bash
+pip install "qml-observer[dashboard]"     # from PyPI
+pip install -e ".[dashboard]"             # from a checkout
+```
+
+Importing `qml_observer.dashboard` itself never requires this extra --
+only actually creating/serving the app (`create_app`/`run_dashboard`)
+does, and raises a clear `ImportError` with install instructions if it's
+missing.
+
+
 ## Verifying the install
 
 ```bash
@@ -56,7 +74,7 @@ python -c "import qml_observer; print(qml_observer.__version__)"
 qml-observer --help
 ```
 
-The first command should print a version string (e.g. `0.3.0`); the
+The first command should print a version string (e.g. `0.4.0`); the
 second should list the CLI's subcommands (`inspect`, `report`, `run`,
 `benchmark`, `telemetry`). If both work, the install succeeded. Next:
 [`quickstart.md`](quickstart.md).

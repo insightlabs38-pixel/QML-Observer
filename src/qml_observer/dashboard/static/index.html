@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>QML Observer Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>QML Observer</h1>
+    <div id="run-meta">
+      <span id="run-id">run: -</span>
+      <a id="export-json" class="export-link" href="/api/export.json" download>Export JSON</a>
+      <a id="export-csv" class="export-link" href="/api/export.csv" download>Export CSV</a>
+      <span id="status-dot" class="dot dot-unknown" title="connection status"></span>
+    </div>
+  </header>
+
+  <main>
+    <section id="diagnosis-panel" class="panel">
+      <h2>Diagnosis</h2>
+      <div id="degraded-banner" class="degraded-banner hidden">
+        &#9888; DIAGNOSIS DEGRADED &mdash; see logs
+      </div>
+      <div class="diagnosis-body">
+        <div class="diagnosis-status">
+          <span id="issue" class="issue-badge issue-unknown">no diagnosis yet</span>
+          <span id="severity" class="severity-badge"></span>
+        </div>
+        <div class="confidence-row">
+          <span>Confidence:</span>
+          <div class="confidence-bar"><div id="confidence-fill"></div></div>
+          <span id="confidence-value">n/a</span>
+        </div>
+        <div class="evidence-recs">
+          <div>
+            <h3>Evidence</h3>
+            <ul id="evidence-list"><li class="muted">none</li></ul>
+          </div>
+          <div>
+            <h3>Recommendations</h3>
+            <ul id="recommendations-list"><li class="muted">none</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="compute-panel" class="panel">
+      <h2>Compute usage</h2>
+      <div class="compute-grid">
+        <div><span class="label">Steps</span><span id="actual-steps" class="value">0</span></div>
+        <div><span class="label">Planned</span><span id="planned-steps" class="value">-</span></div>
+        <div><span class="label">Mean s/step</span><span id="mean-wall-time" class="value">-</span></div>
+        <div><span class="label">Est. compute saved</span><span id="compute-saved" class="value">unknown</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Loss</h2>
+      <canvas id="loss-chart" width="800" height="220"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>Gradient</h2>
+      <div id="gradient-unavailable" class="muted hidden">
+        No gradient data available from this source (see
+        <code>DashboardDataSource</code> docs -- a plain <code>RunReporter</code>
+        source never receives gradient detail).
+      </div>
+      <canvas id="gradient-chart" width="800" height="220"></canvas>
+    </section>
+
+    <section id="history-panel" class="panel span-2">
+      <h2>Run history</h2>
+      <div id="history-unconfigured" class="muted hidden">
+        No history directory configured for this dashboard.
+      </div>
+      <div id="history-empty" class="muted hidden">
+        No finalized runs found yet in the configured directory.
+      </div>
+      <table id="history-table" class="hidden">
+        <thead>
+          <tr>
+            <th>Run</th><th>Framework</th><th>Steps</th><th>Issue</th>
+            <th>Confidence</th><th>Compute saved</th><th>Modified</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>QML Observer &middot; read-only, local by default</footer>
+
+  <script src="/static/chart.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

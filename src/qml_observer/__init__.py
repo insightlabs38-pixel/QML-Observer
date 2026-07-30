@@ -2,6 +2,6 @@
 
 from qml_observer.core.monitor import QMLMonitor
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = ["QMLMonitor", "__version__"]

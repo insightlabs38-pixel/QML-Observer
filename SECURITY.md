@@ -38,3 +38,14 @@ We aim to acknowledge reports within a few business days.
   `qml_observer.integrations.security` for exactly what it does and does
   not cover. If you embed `WebhookAction` behind a service that accepts a
   webhook URL from an untrusted caller, do not rely on this check alone.
+- The optional dashboard (Milestone 11, `qml_observer.dashboard`) has no
+  authentication. `run_dashboard()` binds to `127.0.0.1` by default and
+  **refuses** (raises `ValueError`) to bind any other host unless you
+  explicitly pass `allow_non_loopback=True`, in which case it still warns
+  on stderr every time it starts. If you opt in, anything able to reach
+  that host/port can read the run's data -- including loss curves,
+  gradient statistics, and diagnosis evidence, and potentially
+  proprietary circuit/ansatz metadata if you've included it (see
+  `docs/development/data_handling.md`). The dashboard's `/api/*` routes
+  are read-only; there is no route that can mutate monitor/training
+  state. See `docs/architecture/dashboard.md`.

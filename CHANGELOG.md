@@ -8,7 +8,55 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
-Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 11 onward).
+Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 12 onward).
+
+## [0.4.0] - 2026-07-30
+
+Milestone 11 (Dashboard), Issues #76-#82b -- **complete**:
+
+- `qml_observer.dashboard` (Issue #76): a new optional
+  `qml-observer[dashboard]` extra (`fastapi` + `uvicorn`) adding a
+  read-only dashboard. Architecture: a minimal FastAPI backend serving
+  JSON read through a new `DashboardDataSource` interface, plus a
+  dependency-free static frontend (vanilla HTML/CSS/JS, a small vendored
+  canvas chart helper -- no CDN, matching the project's "nothing leaves
+  your machine by default" posture). Three built-in data sources:
+  `MonitorDataSource` (live, full loss + gradient), `ReporterDataSource`
+  (loss + diagnosis only -- gradient always empty, documented why), and
+  `JSONLDataSource` (post-hoc log reading). Importing
+  `qml_observer.dashboard` never requires `fastapi`/`uvicorn` itself; the
+  `ImportError` with install instructions only fires the first time
+  `create_app`/`run_dashboard` is actually called without the extra
+  installed.
+- `GET /api/loss` (Issue #77): loss-over-step series for the live loss
+  chart.
+- `GET /api/gradient` (Issue #78): gradient-norm/variance/SNR-over-step
+  series, with an explicit `available: false` (not an error) when the
+  data source has no per-step gradient detail.
+- `GET /api/diagnosis` (Issue #79): the current `DiagnosisResult` as
+  JSON, including the addendum §1 `degraded`/`degraded_reason` fields --
+  the frontend renders a visible "DIAGNOSIS DEGRADED" banner whenever
+  `degraded` is true, the same posture as the CLI's `report` command.
+- `GET /api/compute` (Issue #80): planned-vs-actual steps, mean wall
+  time/step, and the addendum §11 `estimated_compute_saved` formula.
+- `GET /api/history` (Issue #81): a run-history table across other,
+  already-finalized runs' JSONL logs, via a new opt-in `history_dir=`
+  parameter on `create_app`/`run_dashboard` (`dashboard/history.py`). Only
+  finalized runs (a `"summary"` JSONL record present) are listed; a
+  malformed or half-written log is skipped with a warning rather than
+  breaking the whole table.
+- `GET /api/export.json` / `GET /api/export.csv` (Issue #82): download
+  the currently-viewed run's dashboard data -- full JSON bundle, or a
+  per-step CSV table with missing values left blank (not `0`) when a
+  source has no gradient detail (`dashboard/export.py`).
+- **Security hardening (Issue #82b):** `run_dashboard()` now *refuses*
+  (raises `ValueError`) to bind to any non-loopback host unless the
+  caller explicitly passes `allow_non_loopback=True` -- a step up from
+  binding-with-a-warning, matching the Milestone 10 webhook's
+  refuse-by-default SSRF posture. See the new scope note in
+  `SECURITY.md`.
+
+See `docs/architecture/dashboard.md` for the full design writeup.
 
 ## [0.3.0] - 2026-07-29
 
