@@ -1,4 +1,8 @@
-"""Integration tests for Milestone 11 Issues #81, #82, #82b."""
+"""Integration tests for Milestone 11 Issues #81, #82, #82b.
+
+Skipped entirely if the optional `fastapi` dependency isn't installed
+(`pip install qml-observer[dashboard]`).
+"""
 
 from __future__ import annotations
 
@@ -8,11 +12,14 @@ import json
 
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
 
-from qml_observer.core.monitor import QMLMonitor
-from qml_observer.dashboard import MonitorDataSource, create_app, run_dashboard
-from qml_observer.reporting.reporter import RunReporter
+pytest.importorskip("fastapi")
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from qml_observer.core.monitor import QMLMonitor  # noqa: E402
+from qml_observer.dashboard import MonitorDataSource, create_app, run_dashboard  # noqa: E402
+from qml_observer.reporting.reporter import RunReporter  # noqa: E402
 
 
 def _finalize_run(path, n_steps=5):

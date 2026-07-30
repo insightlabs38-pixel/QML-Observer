@@ -2,24 +2,29 @@
 
 Exercises `create_app()` end-to-end via `TestClient` against all three
 `DashboardDataSource` implementations, so the routes (Issues #77-#80) are
-tested against real, if small, run data rather than mocks.
+tested against real, if small, run data rather than mocks. Skipped
+entirely if the optional `fastapi` dependency isn't installed (`pip
+install qml-observer[dashboard]`).
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
 
-from qml_observer.core.monitor import QMLMonitor
-from qml_observer.dashboard import (
+pytest.importorskip("fastapi")
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from qml_observer.core.monitor import QMLMonitor  # noqa: E402
+from qml_observer.dashboard import (  # noqa: E402
     JSONLDataSource,
     MonitorDataSource,
     ReporterDataSource,
     create_app,
 )
-from qml_observer.detectors.barren_plateau import BarrenPlateauDetector
-from qml_observer.reporting.reporter import RunReporter
+from qml_observer.detectors.barren_plateau import BarrenPlateauDetector  # noqa: E402
+from qml_observer.reporting.reporter import RunReporter  # noqa: E402
 
 
 @pytest.fixture
@@ -123,8 +128,7 @@ class TestAppWithJSONLSource:
         compute_body = client.get("/api/compute").json()
         assert compute_body["actual_steps"] == 9
         assert (
-            compute_body["estimated_compute_saved"]
-            == reporter.summary["estimated_compute_saved"]
+            compute_body["estimated_compute_saved"] == reporter.summary["estimated_compute_saved"]
         )
 
     def test_missing_log_file_returns_empty_but_valid_responses(self, tmp_path):

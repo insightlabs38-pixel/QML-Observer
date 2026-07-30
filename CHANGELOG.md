@@ -8,7 +8,18 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
-Nothing yet -- see `docs/roadmap.md` for what's next (Milestone 12 onward).
+### Fixed
+
+- CI (`.github/workflows/ci.yml`): the `test`/`typecheck` jobs now install
+  the `dashboard` extra (`pip install ".[dev,pennylane,qiskit,dashboard]"`),
+  fixing a post-`v0.4.0` CI failure where the new dashboard integration
+  tests unconditionally imported `fastapi`, which wasn't installed in CI.
+  The two affected test modules also now use `pytest.importorskip("fastapi")`
+  (matching the existing PennyLane/Qiskit adapter test pattern) so they
+  skip cleanly rather than erroring if run without the `dashboard` extra.
+  Also applied `ruff format` to two dashboard files that were `ruff
+  check`-clean but not `ruff format --check`-clean. No functional/package
+  changes -- `v0.4.0` on PyPI is unaffected.
 
 ## [0.4.0] - 2026-07-30
 

@@ -296,9 +296,7 @@ class JSONLDataSource(DashboardDataSource):
 
     def gradient_series(self) -> GradientSeries:
         events = [
-            r
-            for r in self._records()
-            if r.get("type") == RECORD_TYPE_EVENT and r.get("gradient")
+            r for r in self._records() if r.get("type") == RECORD_TYPE_EVENT and r.get("gradient")
         ]
         return GradientSeries(
             steps=[int(r["step"]) for r in events],
@@ -344,9 +342,7 @@ class JSONLDataSource(DashboardDataSource):
         summary = summaries[-1] if summaries else None
         run_id = events[-1].get("run_id") if events else None
         wall_times: list[float] = [
-            float(w)
-            for r in events
-            if (w := r.get("wall_time")) is not None and math.isfinite(w)
+            float(w) for r in events if (w := r.get("wall_time")) is not None and math.isfinite(w)
         ]
         mean_wall_time = (sum(wall_times) / len(wall_times)) if wall_times else None
         planned_steps = summary.get("planned_steps") if summary else None
