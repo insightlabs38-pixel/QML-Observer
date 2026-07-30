@@ -11,7 +11,7 @@ were chosen and what evidence supports them.
   (extended here to also cover `noise_dominated`, per plan.md §15's
   broader false-positive concern): **target < 5%**.
 - Detection latency on the `artificial_plateau` fixture: **report
-  median/p95 steps-to-detection, no hard target for v0.2.0** -- establish a
+  median/p95 steps-to-detection, no hard target for v0.3.0** -- establish a
   baseline first.
 
 ## Procedure
@@ -47,7 +47,7 @@ This exact procedure is implemented in `benchmarks/run_benchmarks.py`
 through narratively in `benchmarks/qml_observer_benchmark.ipynb` -- run
 either to reproduce every number on this page exactly.
 
-## Current results (v0.2.0 defaults)
+## Current results (v0.3.0 defaults)
 
 `gradient_threshold=5e-6`, `patience=15`, n=50 seeds/scenario:
 
@@ -76,7 +76,7 @@ Raw output: `benchmarks/results/calibration_results.json` (regenerate with
   needs `ScalingAnalyzer` (Milestone 12) to generate genuinely-scaling
   circuit families; it is not covered here.
 - **Single detector-configuration sweep.** Only `gradient_threshold` was
-  swept for v0.2.0; `variance_threshold` (derived automatically as
+  swept for v0.3.0; `variance_threshold` (derived automatically as
   `gradient_threshold ** 2`), `loss_improvement_threshold`, and `patience`
   were left at their original values. A joint sweep across all four is
   reasonable future work if false positives/negatives are observed on
@@ -91,7 +91,7 @@ Raw output: `benchmarks/results/calibration_results.json` (regenerate with
   parameters) if real-world usage surfaces false positives/negatives.
   (A related, non-threshold gap in `StagnationDetector`'s *trigger logic*
   -- not a threshold value -- was found and fixed during the pre-release
-  review; see `CHANGELOG.md`'s `[0.2.0]` "Fixed" section and
+  review; see `CHANGELOG.md`'s `[0.3.0]` "Fixed" section and
   `tests/unit/detectors/test_stagnation.py::TestLossOnlyStagnation`.)
 
 Any future change to these defaults must update this page's results table
@@ -104,7 +104,7 @@ per addendum §3.
 - False-positive rate (misdiagnosed as `POSSIBLE_BARREN_PLATEAU`) on the
   `finite_shots_healthy` fixture: **target < 5%**.
 - `finite_shots_plateau` detection rate: **report, no hard target for
-  v0.2.0** -- establish a baseline, same as Issue #54.
+  v0.3.0** -- establish a baseline, same as Issue #54.
 - New Milestone-9-specific concern: the *conflation* rate -- how often a
   genuine plateau is reported as `NOISE_DOMINATED` only (never also
   `POSSIBLE_BARREN_PLATEAU`) -- should be as close to 0% as practical,
@@ -171,11 +171,11 @@ rationale in `docs/research/benchmarks.md`'s Issue #69b entry.
 ## Known limitations of the Milestone 9 validation
 
 - **Extreme shot budgets are undertested.** `shots=1` is included mainly
-  to stress-test the `NoiseDetector`/`BarrenPlateauDetector` boundary, not
-  because it's a realistic configuration; the 2% conflation rate observed
-  there should not be read as "2% of real runs will be misdiagnosed" --
-  no realistic shot budget this small was found to conflate at all.
-- **Single detector-configuration sweep.** As with the v0.2.0 sweep, only
+to stress-test the `NoiseDetector`/`BarrenPlateauDetector` boundary, not
+because it's a realistic configuration; the 2% conflation rate observed
+there should not be read as "2% of real runs will be misdiagnosed" --
+no realistic shot budget this small was found to conflate at all.
+- **Single detector-configuration sweep.** As with the v0.3.0 sweep, only
   `shots` was varied; `NoiseDetector.snr_threshold` and `patience` were
   held fixed. A joint sweep is reasonable future work if real usage
   surfaces false positives/negatives at shot budgets or thresholds outside
