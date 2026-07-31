@@ -74,6 +74,11 @@ later; there is simply no backend-specific queue/cost logic yet.
   [`research/methodology.md`](research/methodology.md),
   [`research/benchmarks.md`](research/benchmarks.md), and
   [`research/validation.md`](research/validation.md).
+- Want to know *why* a circuit is hard to train, not just that it is? See
+  the Milestone 12 research diagnostics (QFIM, conditioning, parameter
+  redundancy, Hessian-vector products, loss-landscape sampling, and
+  qubit/depth gradient-variance scaling analysis) in
+  [`research/geometry.md`](research/geometry.md).
 - Want to contribute? See
   [`development/contributing.md`](development/contributing.md),
   [`development/development_setup.md`](development/development_setup.md),

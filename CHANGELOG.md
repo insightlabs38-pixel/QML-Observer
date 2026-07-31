@@ -8,6 +8,59 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-31
+
+### Added
+
+Milestone 12 (Research-Grade Diagnostics) -- **complete: Issues
+#83-#89**:
+
+- `qml_observer.advanced` (new, opt-in subpackage, never imported by
+  `qml_observer.__init__`/`core.monitor`/any detector): observation-only
+  research utilities for explaining *why* a circuit is hard to train, not
+  just that it is (blueprint Volume XIII). Not part of the per-step
+  monitoring path -- see `docs/research/geometry.md` for cost/usage
+  guidance per function.
+- `advanced.geometry.qfim.estimate_qfim` (Issue #83): finite-difference
+  quantum Fisher information matrix (QFIM) estimation from a
+  framework-agnostic `state_fn: parameters -> statevector` callable.
+- `advanced.geometry.conditioning` (Issue #84): `qfim_condition_number`,
+  `effective_rank`, and `summarize_conditioning` (`ConditioningResult`)
+  for a QFIM's spectral conditioning, built on Issue #83.
+- `advanced.geometry.redundancy.detect_redundant_parameters` (Issue #85):
+  candidate locally-redundant-parameter detection from a QFIM's
+  near-zero-eigenvalue null space (`RedundancyResult`), built on
+  Issue #84.
+- `advanced.geometry.hessian.estimate_hessian_vector_product` (Issue #86):
+  nested-finite-difference Hessian-vector product estimation from
+  `loss_fn` alone (no analytic gradient/Hessian required), matching the
+  blueprint's exact scaffolded signature.
+- `advanced.geometry.loss_landscape` (Issue #87): `sample_loss_landscape_
+  1d`/`_2d`, `random_direction`, and `landscape_flatness` (`Landscape
+  Sample`) for direct 1D/2D loss-landscape sampling along arbitrary
+  parameter-space directions.
+- `advanced.scaling.ScalingAnalyzer` (Issues #88-#89):
+  `analyze_qubit_scaling`/`analyze_depth_scaling` -- ordinary-least-
+  squares regression of `log(gradient_variance)` against qubit
+  count/depth across a set of `ScalingObservation`s, reporting whether
+  the fit is consistent with barren-plateau theory's predicted
+  exponential-decay signature (`ScalingAnalysisResult.
+  consistent_with_exponential_decay`). Includes
+  `scaling_observation_from_run_summary`, a bridge from
+  `reporting.summary.build_run_summary()`'s existing dict shape.
+- `docs/research/geometry.md` (Issue #89b's per-issue Definition-of-Done
+  gate): math description, references, validation methodology,
+  benchmark-results status, and known limitations for all seven
+  functions/issues above, including a documented development-time fix
+  (a floating-point sign-noise edge case in `ScalingAnalyzer`'s
+  flat-variance classification, caught and pinned by a regression test
+  rather than shipped silently).
+- 74 new unit tests (`tests/unit/advanced/`), each validated against
+  closed-form reference cases with known ground truth (e.g. an analytic
+  single-qubit QFIM, a quadratic loss's exact Hessian, exact synthetic
+  exponential-decay scaling data) rather than only internal-consistency
+  checks.
+
 ### Fixed
 
 - CI (`.github/workflows/ci.yml`): the `test`/`typecheck` jobs now install

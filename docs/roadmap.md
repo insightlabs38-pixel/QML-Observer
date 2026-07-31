@@ -34,7 +34,20 @@ This page covers what's next, at a high level.
 - Milestone 12: research-grade diagnostics -- QFIM estimation and
   conditioning, effective rank, parameter-redundancy detection,
   Hessian-vector products, loss-landscape sampling, qubit/depth scaling
-  analysis.
+  analysis. **Complete: Issues #83-#89** (`qml_observer.advanced.geometry`:
+  `estimate_qfim`, `qfim_condition_number`/`effective_rank`/
+  `summarize_conditioning`, `detect_redundant_parameters`,
+  `estimate_hessian_vector_product`, and the `sample_loss_landscape_1d`/
+  `_2d`/`random_direction`/`landscape_flatness` loss-landscape sampling
+  utilities; `qml_observer.advanced.scaling`: `ScalingAnalyzer.
+  analyze_qubit_scaling`/`analyze_depth_scaling` and
+  `scaling_observation_from_run_summary`) -- observation-only, opt-in
+  research utilities, deliberately not wired into `QMLMonitor`'s per-step
+  path (plan.md §26). See `docs/research/geometry.md` for the Issue
+  #89b Definition-of-Done writeup (math, references, validation,
+  benchmark status, known limitations) per function/issue, including the
+  benchmark-corpus and real-circuit-validation gaps flagged as future
+  work for #83-#89.
 - Milestone 13: a recovery engine -- reinitialize parameters, reduce
   circuit depth, switch ansatz/optimizer, adjust learning rate or shot
   budget, natural-gradient methods -- ranked and tested before resuming a
