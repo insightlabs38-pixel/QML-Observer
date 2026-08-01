@@ -118,6 +118,89 @@ class TestStopMode:
         assert monitor.should_stop() is False
 
 
+class TestPauseMode:
+    """Milestone 13, Issue #90b: `PauseAction` real behavior via `QMLMonitor`."""
+
+    def test_real_barren_plateau_run_arms_pause_action(self):
+        monitor = QMLMonitor(
+            detectors=[
+                BarrenPlateauDetector(
+                    gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=10
+                )
+            ],
+            policy="pause",
+        )
+        rng = np.random.default_rng(0)
+        for step in range(20):
+            monitor.update(
+                step=step, loss=0.8 + rng.normal(0, 1e-8), gradients=rng.normal(0, 1e-6, size=8)
+            )
+        assert monitor.should_pause() is True
+        assert monitor.should_stop() is False  # pause never escalates to a stop by itself
+        assert monitor.action_policy.pause_action.triggered is True
+        result = monitor.latest_action_result()
+        assert result is not None
+        assert result.action_name == "pause"
+
+    def test_pause_snapshot_captures_run_context(self):
+        monitor = QMLMonitor(policy="pause", window_size=50, planned_steps=500, run_id="paused-1")
+        monitor.state.latest_diagnosis = _critical_diagnosis()
+        monitor.action_policy.execute(
+            _critical_diagnosis(),
+            run_id=monitor.run_id,
+            step=monitor.state.step_count,
+            window_size=50,
+            planned_steps=500,
+        )
+        snapshot = monitor.action_policy.pause_action.last_snapshot
+        assert snapshot is not None
+        assert snapshot.run_id == "paused-1"
+        assert snapshot.window_size == 50
+        assert snapshot.planned_steps == 500
+
+    def test_update_populates_snapshot_via_monitor_run_context(self):
+        monitor = QMLMonitor(
+            detectors=[
+                BarrenPlateauDetector(
+                    gradient_threshold=1e-3, loss_improvement_threshold=1e-4, patience=5
+                )
+            ],
+            policy="pause",
+            window_size=100,
+            run_id="paused-run-ctx",
+        )
+        rng = np.random.default_rng(1)
+        for step in range(10):
+            monitor.update(
+                step=step, loss=0.8 + rng.normal(0, 1e-8), gradients=rng.normal(0, 1e-6, size=8)
+            )
+        snapshot = monitor.action_policy.pause_action.last_snapshot
+        assert snapshot is not None
+        assert snapshot.run_id == "paused-run-ctx"
+        assert snapshot.window_size == 100
+
+    def test_reset_clears_pause_action_state(self):
+        monitor = QMLMonitor(policy="pause")
+        monitor.action_policy.execute(_critical_diagnosis())
+        assert monitor.action_policy.pause_action.triggered is True
+        monitor.reset()
+        assert monitor.action_policy.pause_action.triggered is False
+        assert monitor.should_pause() is False
+
+    def test_degraded_critical_never_pauses(self):
+        monitor = QMLMonitor(policy="pause")
+        monitor.state.latest_diagnosis = DiagnosisResult(
+            issue=IssueType.INSUFFICIENT_EVIDENCE,
+            confidence=0.0,
+            severity="critical",
+            evidence=[],
+            recommendations=[],
+            degraded=True,
+            degraded_reason="synthetic",
+        )
+        assert monitor.should_pause() is False
+
+
 class TestActionSafety:
     """Issue #40: an action-layer failure must never propagate into the caller."""
 

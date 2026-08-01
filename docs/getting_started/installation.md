@@ -1,6 +1,6 @@
 # Installation
 
-QML Observer is in public beta (`0.5.0`, `Development Status :: 4 - Beta`)
+QML Observer is in public beta (`0.6.0`, `Development Status :: 4 - Beta`)
 and is published on PyPI:
 
 ```bash
@@ -74,7 +74,7 @@ python -c "import qml_observer; print(qml_observer.__version__)"
 qml-observer --help
 ```
 
-The first command should print a version string (e.g. `0.5.0`); the
+The first command should print a version string (e.g. `0.6.0`); the
 second should list the CLI's subcommands (`inspect`, `report`, `run`,
 `benchmark`, `telemetry`). If both work, the install succeeded. Next:
 [`quickstart.md`](quickstart.md).

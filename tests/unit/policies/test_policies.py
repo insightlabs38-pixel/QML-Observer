@@ -6,6 +6,7 @@ import pytest
 
 from qml_observer.actions.alert import AlertAction
 from qml_observer.actions.log import LogAction
+from qml_observer.actions.pause import PauseAction
 from qml_observer.actions.policies import VALID_MODES, ActionPolicy
 from qml_observer.actions.stop import StopAction
 
@@ -47,14 +48,34 @@ class TestWarnMode:
 
 
 class TestPauseMode:
-    """`pause` behaves like `warn` until `PauseAction` ships (see module docstring)."""
+    """`pause` selects a real `PauseAction` for critical diagnoses (Issue #90b)."""
+
+    def test_critical_selects_pause_action(self, critical_diagnosis):
+        action = ActionPolicy(mode="pause").select_action(critical_diagnosis)
+        assert isinstance(action, PauseAction)
+        assert not isinstance(action, StopAction)
 
     def test_critical_never_stops_in_pause_mode(self, critical_diagnosis):
         action = ActionPolicy(mode="pause").select_action(critical_diagnosis)
+        assert not isinstance(action, StopAction)
+
+    def test_warning_selects_alert_not_pause(self, warning_diagnosis):
+        action = ActionPolicy(mode="pause").select_action(warning_diagnosis)
         assert isinstance(action, AlertAction)
 
     def test_info_selects_log_action(self, healthy_diagnosis):
         assert isinstance(ActionPolicy(mode="pause").select_action(healthy_diagnosis), LogAction)
+
+    def test_degraded_critical_never_pauses(self, degraded_critical_diagnosis):
+        """Addendum §1 applies to PauseAction too: degraded never escalates."""
+        action = ActionPolicy(mode="pause").select_action(degraded_critical_diagnosis)
+        assert isinstance(action, AlertAction)
+
+    def test_stop_mode_never_selects_pause(self, critical_diagnosis):
+        """`stop`/`adaptive` escalate straight past pausing (module docstring)."""
+        action = ActionPolicy(mode="stop").select_action(critical_diagnosis)
+        assert isinstance(action, StopAction)
+        assert not isinstance(action, PauseAction)
 
 
 class TestStopMode:

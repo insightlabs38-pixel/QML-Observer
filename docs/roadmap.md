@@ -51,8 +51,24 @@ This page covers what's next, at a high level.
 - Milestone 13: a recovery engine -- reinitialize parameters, reduce
   circuit depth, switch ansatz/optimizer, adjust learning rate or shot
   budget, natural-gradient methods -- ranked and tested before resuming a
-  run automatically. Not implemented until the detection system itself is
-  validated (see `docs/research/validation.md`).
+  run automatically. Resequenced per `future_milestones_plan.md`: Issue
+  #90b (`PauseAction`) ships first since Issue #97 (automatic resume)
+  depends on it. **Complete: Issues #90b, #90-#97 (including #96b).**
+  `actions.pause.PauseAction` (real pause/resume behavior with a
+  resumable `PausedRunSnapshot`, replacing the previous `"pause"` ==
+  `"warn"` placeholder); the `qml_observer.recovery` package
+  (`RecoveryContext`/`RecoveryRecommendation`/`RecoveryOutcome`/
+  `RecoveryStrategy`, `RecoveryPlanner`, `RecoveryExecutor`,
+  `RecoveryEvaluator`); six concrete strategies
+  (`ParameterReinitializationStrategy`, `LearningRateAdjustmentStrategy`,
+  `ShotBudgetAdjustmentStrategy`, `AnsatzDepthReductionStrategy`,
+  `OptimizerSwitchingStrategy`, `NaturalGradientStrategy`); and
+  `resume_monitor_from_snapshot()` for reconstructing a `QMLMonitor`
+  after a pause -- see `docs/architecture/recovery.md` for the
+  Definition-of-Done writeup per issue. Recovery remains a distinct,
+  opt-in layer, not wired into `ActionPolicy`, per the blueprint's
+  explicit instruction not to automate recovery before the detection
+  system is validated.
 - Milestone 14: broader ecosystem support -- PyTorch/JAX hybrid-workflow
   adapters, a generic autograd adapter, experiment-tracker integrations,
   and a documented third-party detector plugin API.

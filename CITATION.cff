@@ -3,8 +3,8 @@ message: "If you use QML Observer in your research, please cite it as below."
 title: "QML Observer: an observability and diagnostic framework for variational quantum machine learning training"
 authors:
   - name: "QML Observer Contributors"
-version: 0.4.0
-date-released: "2026-07-30"
+version: 0.6.0
+date-released: "2026-08-01"
 url: "https://github.com/insightlabs38-pixel/QML-Observer"
 repository-code: "https://github.com/insightlabs38-pixel/QML-Observer"
 license: MPL-2.0

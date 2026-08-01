@@ -94,3 +94,47 @@ class TestReset:
         assert state.latest_diagnosis is None
         # run_id/window_size/planned_steps are untouched by reset()
         assert state.run_id == "run-1"
+
+
+class TestSeedStepCount:
+    """Milestone 13, Issue #97 ("Automatic resume")."""
+
+    def test_seeds_step_count_on_fresh_state(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.seed_step_count(42)
+        assert state.step_count == 42
+
+    def test_seeds_zero(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.seed_step_count(0)
+        assert state.step_count == 0
+
+    def test_negative_step_raises(self):
+        state = RunState(run_id="run-1", window_size=10)
+        with pytest.raises(ValueError, match="step"):
+            state.seed_step_count(-1)
+
+    def test_raises_if_observations_already_recorded(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.record(_obs(0))
+        with pytest.raises(ValueError, match="no recorded observations"):
+            state.seed_step_count(10)
+
+    def test_allowed_again_after_reset(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.record(_obs(0))
+        state.reset()
+        state.seed_step_count(5)  # does not raise
+        assert state.step_count == 5
+
+    def test_seeding_does_not_touch_window(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.seed_step_count(50)
+        assert state.window == []
+        assert state.latest_observation is None
+
+    def test_record_after_seeding_continues_from_seeded_count(self):
+        state = RunState(run_id="run-1", window_size=10)
+        state.seed_step_count(50)
+        state.record(_obs(50))
+        assert state.step_count == 51

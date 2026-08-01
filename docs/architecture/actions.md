@@ -1,9 +1,9 @@
 # Actions
 
-`qml_observer.actions` implements the blueprint's four-level intervention
-model (plan.md §7): log-only, warn, pause (not yet distinct from warn --
-see below), and stop, plus a `"adaptive"` mode for opting into stopping on
-a `degraded` diagnosis.
+`qml_observer.actions` implements the blueprint's five-level intervention
+model (plan.md §7): log-only, warn, pause, stop, and recover (recovery
+strategies live in `qml_observer.recovery`, Milestone 13), plus an
+`"adaptive"` mode for opting into stopping on a `degraded` diagnosis.
 
 - **`Action`** (`actions/base.py`) -- shared interface: `execute(diagnosis)
   -> ActionResult`. Every built-in action catches its own internal errors,
@@ -17,15 +17,39 @@ a `degraded` diagnosis.
   the caller's own training loop to check (`monitor.should_stop()`); never
   reaches into the loop directly, preserving the non-invasive core
   principle.
-- **`PauseAction`** -- not yet implemented (Milestone 13); `"pause"` mode
-  currently behaves identically to `"warn"`, a deliberate conservative
-  choice rather than a silent no-op.
+- **`PauseAction`** (Milestone 13, Issue #90b) -- records a pause request
+  via a `.triggered`/`.paused` flag (`monitor.should_pause()`), like
+  `StopAction`, but is explicitly reversible (`.resume()` clears the flag
+  while keeping history) and captures a `PausedRunSnapshot` -- run ID,
+  step, window size, `planned_steps`, and the triggering diagnosis --
+  enough to reconstruct an equivalent `QMLMonitor` later. This is the
+  prerequisite for automatic resume (Issue #97, not yet implemented);
+  `QMLMonitor.update()`/`finish()` pass their own run context into
+  `ActionPolicy.execute()` so a triggered pause's snapshot is genuinely
+  populated. `mode="pause"` now selects it for a critical, non-degraded
+  diagnosis instead of falling back to `"warn"`'s alert behavior.
 
 **`ActionPolicy`** (`actions/policies.py`) selects which `Action` to run
 for a given `DiagnosisResult` and mode. It enforces the addendum §1
 degraded-diagnosis safety rule: a `degraded=True` diagnosis never selects
-`StopAction` unless `mode="adaptive"` **and** the caller explicitly passed
-`allow_stop_on_degraded=True`.
+`StopAction`/`PauseAction` unless `mode="adaptive"` **and** the caller
+explicitly passed `allow_stop_on_degraded=True` (for `StopAction`;
+`PauseAction` has no such escalation path since `"stop"`/`"adaptive"`
+never select it in the first place -- see module docstring).
+
+## Recovery engine (Milestone 13)
+
+See `docs/architecture/recovery.md` for `qml_observer.recovery`
+(**complete: Issues #90b, #90-#97**) -- `RecoveryPlanner`/
+`RecoveryExecutor`/`RecoveryEvaluator`, six concrete strategies
+(parameter reinitialization, learning-rate adjustment, shot-budget
+adjustment, ansatz-depth reduction, optimizer switching, natural
+gradient), and `resume_monitor_from_snapshot()` for reconstructing a
+`QMLMonitor` after a pause. Recovery is a distinct, opt-in layer that
+runs *after* a `PauseAction`, not a new `ActionPolicy` mode: it is not
+wired into `ActionPolicy.select_action()`, consistent with the
+blueprint's explicit instruction not to implement automatic recovery
+until the detection system is validated (Volume XIV).
 
 ## Webhook alerting (Milestone 10)
 

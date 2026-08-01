@@ -25,6 +25,15 @@ read of prior side-effect state, so it keeps working whether the caller
 drives diagnoses through `update()` or sets `state.latest_diagnosis`
 directly (as many existing unit tests do).
 
+Milestone 13 update (Issue #90b, "Implement PauseAction itself"):
+`"pause"` now genuinely arms a `PauseAction` (previously it behaved
+identically to `"warn"`). `should_pause()` mirrors `should_stop()`'s
+pure, side-effect-free recomputation, and `update()`/`finish()` now pass
+enough run context (run_id, step, window_size, planned_steps) into
+`ActionPolicy.execute()` so a triggered `PauseAction` captures a genuinely
+useful `PausedRunSnapshot` for a future resume (Issue #97), rather than an
+empty placeholder.
+
 Failure semantics (addendum §1, "Fail-open with transparency"): any
 exception raised while processing a step's data (schema validation,
 gradient summarization, detector/statistics calls) is caught inside
@@ -50,6 +59,7 @@ from collections.abc import Callable
 from typing import Any, Literal, TypeVar
 
 from qml_observer.actions.base import ActionResult
+from qml_observer.actions.pause import PauseAction
 from qml_observer.actions.policies import VALID_MODES, ActionPolicy, StopAction
 from qml_observer.core.events import StepObservation
 from qml_observer.core.run import generate_run_id, validate_run_id
@@ -317,7 +327,13 @@ class QMLMonitor:
         `_degrade()` does for detector/statistics failures.
         """
         try:
-            return self._action_policy.execute(diagnosis)
+            return self._action_policy.execute(
+                diagnosis,
+                run_id=self.run_id,
+                step=self._state.step_count,
+                window_size=self._window_size,
+                planned_steps=self._planned_steps,
+            )
         except Exception:
             _logger.warning(
                 "qml_observer: action policy failed for run_id=%s step=%s; "
@@ -504,6 +520,20 @@ class QMLMonitor:
         if diagnosis is None:
             return False
         return isinstance(self._action_policy.select_action(diagnosis), StopAction)
+
+    def should_pause(self) -> bool:
+        """Whether the configured policy currently recommends pausing.
+
+        Mirrors `should_stop()`: a pure, side-effect-free recomputation
+        from `state.latest_diagnosis`, not a read of whether `PauseAction`
+        has already fired. Only `mode="pause"` can ever return `True` here
+        (`actions/policies.py::_PAUSE_CAPABLE_MODES`); `"stop"`/`"adaptive"`
+        escalate straight past pausing.
+        """
+        diagnosis = self._state.latest_diagnosis
+        if diagnosis is None:
+            return False
+        return isinstance(self._action_policy.select_action(diagnosis), PauseAction)
 
     def latest_diagnosis(self) -> DiagnosisResult | None:
         """The most recent `DiagnosisResult`, or None if no step has run yet."""

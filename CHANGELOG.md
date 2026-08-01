@@ -8,6 +8,94 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-01
+
+Milestone 13 (Recovery Engine) -- **complete: Issues #90b, #90-#97**
+(including #96b). Resequenced per `future_milestones_plan.md`: Issue
+#90b ships first since Issue #97 (automatic resume) depends on it; the
+blueprint's original #90-#97 numbering otherwise covers recovery
+*strategies* only.
+
+### Added
+
+- `actions.pause.PauseAction` (Issue #90b): `"pause"` mode now has real,
+  distinct behavior (previously identical to `"warn"`). Records a pause
+  request via `.triggered`/`.paused`, reversible via `.resume()` (keeps
+  history) vs `.reset()` (clears it), and captures a `PausedRunSnapshot`
+  (run ID, step, window size, `planned_steps`, triggering diagnosis) --
+  the prerequisite state for a future automatic-resume path (Issue #97).
+  `QMLMonitor.should_pause()` mirrors `should_stop()`'s pure,
+  side-effect-free recomputation; `update()`/`finish()` now pass run
+  context into `ActionPolicy.execute()` so a triggered pause's snapshot
+  is genuinely populated. Degraded-diagnosis safety (addendum §1) applies
+  identically to `StopAction`.
+- `qml_observer.recovery` (new package, Issue #90 -- "Recovery strategy
+  interface"): `RecoveryContext`, `RecoveryRecommendation`,
+  `RecoveryOutcome`, the `RecoveryStrategy` ABC, `RecoveryPlanner.
+  recommend()` (ranked by priority, fail-open per strategy, conservative
+  on `degraded=True` diagnoses unless `allow_degraded=True`), and
+  `RecoveryExecutor.apply()` (non-invasive: only calls an explicit,
+  caller-implemented hook method on a caller-supplied `training_state`
+  object; never raises). Deliberately *not* wired into `ActionPolicy` or
+  `QMLMonitor` -- recovery stays an explicit, opt-in layer per the
+  blueprint's "do not implement automatic recovery until the detection
+  system is validated" (Volume XIV).
+- `recovery.strategies.ParameterReinitializationStrategy` (Issue #91):
+  applies to `POSSIBLE_BARREN_PLATEAU`/`STAGNATION`; recommends a
+  reduced-domain/small-angle reinitialization for a barren plateau with a
+  generic circuit initialization (literature-grounded mitigation, see
+  `docs/architecture/recovery.md`), a lower-priority plain reinit
+  otherwise.
+- `recovery.strategies.LearningRateAdjustmentStrategy` (Issue #92):
+  applies to `UNSTABLE` (halves the learning rate) and `STAGNATION`
+  (doubles it); deliberately excludes `POSSIBLE_BARREN_PLATEAU` since a
+  larger step on an already-vanishing gradient still vanishes.
+- `recovery.strategies.ShotBudgetAdjustmentStrategy` (Issue #93): applies
+  to `NOISE_DOMINATED`; computes a target shot count from the observed
+  gradient SNR and the `1/sqrt(shots)` shot-noise scaling
+  (`statistics.snr`), capped at a 100x increase, never proposing fewer
+  shots than currently in use.
+- `recovery.strategies.AnsatzDepthReductionStrategy` (Issue #94): applies
+  to `POSSIBLE_BARREN_PLATEAU`; recommends reducing `CircuitMetadata.
+  depth` by a configurable fraction (default 50%), targeting circuit
+  expressivity directly rather than the starting point or the classical
+  optimizer.
+- `recovery.strategies.OptimizerSwitchingStrategy` (Issue #95): applies
+  to `UNSTABLE` (switches away from adaptive toward conservative
+  optimizers) and `STAGNATION` (switches toward adaptive/momentum-based
+  optimizers); deliberately excludes `POSSIBLE_BARREN_PLATEAU`.
+- `recovery.strategies.NaturalGradientStrategy` (Issue #96b -- named in
+  plan.md §22 and the blueprint's `RecoveryPlanner` list but missing from
+  the original #90-#97 breakdown, added per `future_milestones_plan.md`'s
+  gap analysis): applies to `POSSIBLE_BARREN_PLATEAU`/`STAGNATION`;
+  recommends a QFIM-preconditioned natural-gradient optimizer, capped at
+  a lower priority than the cheaper strategies above given its per-step
+  QFIM-estimation cost.
+- `recovery.evaluation.RecoveryEvaluator` (Issue #96 -- "Recovery
+  evaluation"): compares a before/after `DiagnosisResult` pair and judges
+  whether a recovery attempt improved training health (`evaluate()`) and
+  whether it should be kept vs. rolled back (`should_keep()`), per
+  plan.md §22's "test a small number of changes, resume only if health
+  metrics improve." Conservative on degraded diagnoses, mirroring
+  addendum §1.
+- `RunState.seed_step_count()` (Issue #97 support): advances a fresh
+  `RunState`'s step counter without replaying history; used only by
+  `resume_monitor_from_snapshot()` below.
+- `qml_observer.recovery.resume.resume_monitor_from_snapshot()` (Issue
+  #97 -- "Automatic resume"): reconstructs a `QMLMonitor` from a
+  `PausedRunSnapshot` (same `run_id`/`window_size`/`planned_steps`, step
+  counter seeded to continue the sequence). Explicitly scoped as
+  automating *monitoring* resume only, not the caller's actual training
+  loop -- qml_observer does not own that loop.
+- 166 recovery-package unit tests total (`tests/unit/recovery/`), plus
+  `tests/unit/core/test_state.py::TestSeedStepCount` and
+  `tests/unit/recovery/test_resume.py` (including an end-to-end pause ->
+  resume test through a real `QMLMonitor` + `BarrenPlateauDetector` run).
+- `docs/architecture/recovery.md`: Definition-of-Done writeup (math
+  description, references, validation methodology, known limitations)
+  for all nine issues above, per the blueprint's Volume XVIII research-
+  feature bar.
+
 ## [0.5.0] - 2026-07-31
 
 ### Added

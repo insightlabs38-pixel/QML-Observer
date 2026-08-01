@@ -105,6 +105,36 @@ class RunState:
             return None
         return sum(wall_times) / len(wall_times)
 
+    def seed_step_count(self, step: int) -> None:
+        """Advance the step counter to `step` without replaying any history.
+
+        Milestone 13, Issue #97 ("Automatic resume"): used only when
+        reconstructing a `QMLMonitor` from a `PausedRunSnapshot`
+        (`recovery.resume.resume_monitor_from_snapshot`) so a resumed
+        run's step numbering, `planned_steps`-based compute-saved
+        estimate, and window-size behavior stay consistent with the
+        paused run -- **not** a general-purpose way to rewind/fast-forward
+        state. Only valid on a freshly-constructed or freshly-`reset()`
+        `RunState` (no observations recorded yet); calling it after
+        `record()` has already been used would silently misrepresent the
+        window's actual history, so it raises instead.
+
+        Args:
+            step: The step count to seed. Must be >= 0.
+
+        Raises:
+            ValueError: If `step < 0`, or if this `RunState` already has
+                recorded observations (`step_count != 0`).
+        """
+        if step < 0:
+            raise ValueError(f"step must be >= 0, got {step}")
+        if self._total_steps != 0:
+            raise ValueError(
+                "seed_step_count() can only be called on a RunState with no recorded "
+                f"observations yet (step_count is currently {self._total_steps}, not 0)."
+            )
+        self._total_steps = step
+
     def reset(self) -> None:
         """Clear all recorded observations and lifecycle state in place.
 

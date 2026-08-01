@@ -11,22 +11,27 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** v0.5.0 — public beta. Core schemas, monitoring engine,
-> detectors, diagnosis engine, actions, both the PennyLane and Qiskit
-> adapters, JSONL logging, run summaries, compute-saved estimation, the
-> CLI, the calibration benchmark suite, webhook alerting (including a
-> Slack-compatible formatter, alert deduplication/cooldowns, evidence
-> redaction, and a webhook-URL SSRF safeguard), an optional read-only
-> dashboard (`qml-observer[dashboard]`: live loss/gradient charts, a
-> diagnosis panel, compute-usage panel, run history, and data export),
-> and opt-in research-grade diagnostics (`qml_observer.advanced`: QFIM
-> estimation/conditioning, parameter-redundancy detection,
-> Hessian-vector products, loss-landscape sampling, and qubit/depth
-> gradient-variance scaling analysis — see `docs/research/geometry.md`)
-> are all shipped (Milestones 0–12). See `CHANGELOG.md` for the full
-> release notes and `docs/roadmap.md` for what's next. **The `0.x` API is
-> not yet stable and may change without a major-version bump**, per
-> SemVer's `0.x` convention.
+> **Status:** v0.6.0 — public beta. Core schemas, monitoring engine,
+> detectors, diagnosis engine, actions (including a real `PauseAction`),
+> both the PennyLane and Qiskit adapters, JSONL logging, run summaries,
+> compute-saved estimation, the CLI, the calibration benchmark suite,
+> webhook alerting (including a Slack-compatible formatter, alert
+> deduplication/cooldowns, evidence redaction, and a webhook-URL SSRF
+> safeguard), an optional read-only dashboard (`qml-observer[dashboard]`:
+> live loss/gradient charts, a diagnosis panel, compute-usage panel, run
+> history, and data export), opt-in research-grade diagnostics
+> (`qml_observer.advanced`: QFIM estimation/conditioning,
+> parameter-redundancy detection, Hessian-vector products,
+> loss-landscape sampling, and qubit/depth gradient-variance scaling
+> analysis — see `docs/research/geometry.md`), and an opt-in recovery
+> engine (`qml_observer.recovery`: ranked recovery strategies —
+> reinitialization, learning-rate/shot-budget adjustment, ansatz-depth
+> reduction, optimizer switching, natural gradient — plus recovery
+> evaluation and monitor resume after a pause; see
+> `docs/architecture/recovery.md`) are all shipped (Milestones 0–13). See
+> `CHANGELOG.md` for the full release notes and `docs/roadmap.md` for
+> what's next. **The `0.x` API is not yet stable and may change without a
+> major-version bump**, per SemVer's `0.x` convention.
 >
 > Note: the `"pause"` action-policy mode currently behaves identically to
 > `"warn"` — a distinct pause-and-preserve-state action (`PauseAction`)
