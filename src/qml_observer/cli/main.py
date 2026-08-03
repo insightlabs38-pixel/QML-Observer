@@ -8,6 +8,15 @@ produced by `qml_observer.reporting.reporter.RunReporter` (Issues #48/#49):
     qml-observer inspect run.jsonl
     qml-observer report run.jsonl
     qml-observer telemetry {enable,disable,status}
+    qml-observer plugins list
+    qml-observer history list HISTORY.jsonl
+    qml-observer history compare HISTORY.jsonl [--tag key=value] [--run-id ID ...]
+    qml-observer history export HISTORY.jsonl --format {csv,json} OUTPUT
+
+The `history` subcommand operates on a `RunHistory` ledger (Milestone 14,
+Issue #103b -- `qml_observer.reporting.history`), a separate,
+one-line-per-completed-run file distinct from the per-step JSONL logs
+`inspect`/`report` read.
 
 Scope note: the blueprint's Volume XV also sketches `run config.yaml` and
 `benchmark barren-plateau` subcommands. Implementing those would require a
@@ -28,7 +37,9 @@ import json
 import sys
 from typing import Any
 
+from qml_observer.detectors.plugins import list_detector_plugins
 from qml_observer.reporting.export import format_compute_saved
+from qml_observer.reporting.history import RunHistory, format_comparison_table
 from qml_observer.reporting.jsonl import (
     RECORD_TYPE_DIAGNOSIS,
     RECORD_TYPE_EVENT,
@@ -155,6 +166,84 @@ def cmd_telemetry(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plugins(args: argparse.Namespace) -> int:
+    """List third-party detector plugins registered via entry points (Issue #103)."""
+    plugins = list_detector_plugins()
+    if not plugins:
+        print("No detector plugins registered.")
+        print(
+            "Third-party packages register detectors under the "
+            "'qml_observer.detectors' entry-point group -- see "
+            "docs/development/plugin_api.md."
+        )
+        return 0
+
+    print(f"{len(plugins)} detector plugin(s) registered:\n")
+    for name, target in sorted(plugins.items()):
+        print(f"  {name}  ->  {target}")
+    print(
+        "\nNote: this lists what's registered without importing it. A plugin "
+        "listed here may still fail to load (see `load_detector_plugins()`) -- "
+        "plugins run in-process with no sandboxing; see SECURITY.md."
+    )
+    return 0
+
+
+def _parse_tag_filter(raw: str | None) -> tuple[str, str] | None:
+    if raw is None:
+        return None
+    if "=" not in raw:
+        raise SystemExit(f"error: --tag must be in key=value form, got {raw!r}")
+    key, _, value = raw.partition("=")
+    return key, value
+
+
+def cmd_history_list(args: argparse.Namespace) -> int:
+    """Print every run recorded in a `RunHistory` ledger (Issue #103b)."""
+    history = RunHistory(args.path)
+    records = history.load_all()
+    tag_filter = _parse_tag_filter(args.tag)
+    if tag_filter is not None:
+        key, value = tag_filter
+        records = [r for r in records if r.tags.get(key) == value]
+
+    if not records:
+        print(f"No runs recorded in {args.path}.")
+        return 0
+
+    print(format_comparison_table(records))
+    print(f"\n{len(records)} run(s) total.")
+    return 0
+
+
+def cmd_history_compare(args: argparse.Namespace) -> int:
+    """Print a comparison table for a `RunHistory` ledger, optionally filtered."""
+    history = RunHistory(args.path)
+    records = history.load_all()
+
+    if args.run_id:
+        wanted = set(args.run_id)
+        records = [r for r in records if r.run_id in wanted]
+    tag_filter = _parse_tag_filter(args.tag)
+    if tag_filter is not None:
+        key, value = tag_filter
+        records = [r for r in records if r.tags.get(key) == value]
+
+    print(format_comparison_table(records))
+    return 0
+
+
+def cmd_history_export(args: argparse.Namespace) -> int:
+    """Export a `RunHistory` ledger to CSV or JSON (Issue #103b)."""
+    history = RunHistory(args.path)
+    if args.format == "csv":
+        history.export_csv(args.output)
+    else:
+        history.export_json(args.output)
+    print(f"Exported {len(history.load_all())} run(s) to {args.output} ({args.format}).")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qml-observer", description="QML Observer CLI.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -190,6 +279,53 @@ def build_parser() -> argparse.ArgumentParser:
         help="enable/disable telemetry, or show current status.",
     )
     telemetry_parser.set_defaults(func=cmd_telemetry)
+
+    plugins_parser = subparsers.add_parser(
+        "plugins", help="Manage third-party detector plugins (Issue #103)."
+    )
+    plugins_subparsers = plugins_parser.add_subparsers(
+        dest="plugins_action", required=True
+    )
+    plugins_list_parser = plugins_subparsers.add_parser(
+        "list", help="List detector plugins registered via entry points."
+    )
+    plugins_list_parser.set_defaults(func=cmd_plugins)
+
+    history_parser = subparsers.add_parser(
+        "history", help="Inspect/compare/export a RunHistory ledger (Issue #103b)."
+    )
+    history_subparsers = history_parser.add_subparsers(dest="history_action", required=True)
+
+    history_list_parser = history_subparsers.add_parser(
+        "list", help="List every run recorded in a RunHistory ledger."
+    )
+    history_list_parser.add_argument("path", help="Path to a RunHistory JSONL ledger.")
+    history_list_parser.add_argument(
+        "--tag", metavar="KEY=VALUE", help="Only show runs whose tag KEY equals VALUE."
+    )
+    history_list_parser.set_defaults(func=cmd_history_list)
+
+    history_compare_parser = history_subparsers.add_parser(
+        "compare", help="Print a comparison table, optionally filtered."
+    )
+    history_compare_parser.add_argument("path", help="Path to a RunHistory JSONL ledger.")
+    history_compare_parser.add_argument(
+        "--run-id", action="append", help="Only compare this run ID (repeatable)."
+    )
+    history_compare_parser.add_argument(
+        "--tag", metavar="KEY=VALUE", help="Only compare runs whose tag KEY equals VALUE."
+    )
+    history_compare_parser.set_defaults(func=cmd_history_compare)
+
+    history_export_parser = history_subparsers.add_parser(
+        "export", help="Export a RunHistory ledger to CSV or JSON."
+    )
+    history_export_parser.add_argument("path", help="Path to a RunHistory JSONL ledger.")
+    history_export_parser.add_argument(
+        "--format", choices=["csv", "json"], required=True, help="Output format."
+    )
+    history_export_parser.add_argument("output", help="Output file path.")
+    history_export_parser.set_defaults(func=cmd_history_export)
 
     return parser
 

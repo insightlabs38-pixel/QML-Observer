@@ -60,10 +60,16 @@ later; there is simply no backend-specific queue/cost logic yet.
   [`getting_started/quickstart.md`](getting_started/quickstart.md).
 - Integrating a real training loop? See
   [`integrations/pennylane.md`](integrations/pennylane.md),
-  [`integrations/qiskit.md`](integrations/qiskit.md), or
+  [`integrations/qiskit.md`](integrations/qiskit.md),
+  [`integrations/pytorch.md`](integrations/pytorch.md),
+  [`integrations/jax.md`](integrations/jax.md), or
   [`integrations/generic.md`](integrations/generic.md).
 - Want alerts delivered somewhere other than the terminal (Slack, a
   custom backend)? See [`integrations/webhook.md`](integrations/webhook.md).
+- Already using MLflow or Weights & Biases? See
+  [`integrations/experiment_trackers.md`](integrations/experiment_trackers.md).
+- Comparing many runs, or A/B testing ansatzes? See
+  [`architecture/run_history.md`](architecture/run_history.md).
 - Wondering what a diagnosis means? See
   [`detectors/barren_plateau.md`](detectors/barren_plateau.md),
   [`detectors/stagnation.md`](detectors/stagnation.md), and
@@ -82,7 +88,11 @@ later; there is simply no backend-specific queue/cost logic yet.
 - Want to contribute? See
   [`development/contributing.md`](development/contributing.md),
   [`development/development_setup.md`](development/development_setup.md),
-  and [`development/adding_detectors.md`](development/adding_detectors.md).
+  [`development/adding_detectors.md`](development/adding_detectors.md),
+  and, for writing your own adapter, experiment-tracker integration, or
+  detector plugin, [`development/plugin_api.md`](development/plugin_api.md)
+  (built-in detector proposals instead go through
+  [`development/detector_rfc_template.md`](development/detector_rfc_template.md)).
 - Curious what data ever leaves your machine? See
   [`development/data_handling.md`](development/data_handling.md) and the
   opt-in telemetry schema in

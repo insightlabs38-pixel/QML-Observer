@@ -71,7 +71,18 @@ This page covers what's next, at a high level.
   system is validated.
 - Milestone 14: broader ecosystem support -- PyTorch/JAX hybrid-workflow
   adapters, a generic autograd adapter, experiment-tracker integrations,
-  and a documented third-party detector plugin API.
+  a documented third-party detector plugin API, and run comparison/
+  experiment management. **Complete: Issues #98-#103, #103b.**
+  `qml_observer.adapters.autograd.AutogradAdapter` (framework-neutral,
+  duck-typed tensor conversion); `PyTorchAdapter`/`JAXAdapter`
+  (`qml-observer[torch]`/`[jax]`); `qml_observer.integrations.trackers`
+  (`MLflowTracker`/`WandbTracker`, `qml-observer[mlflow]`/`[wandb]`);
+  `qml_observer.detectors.plugins` (entry-point-based third-party
+  detector discovery/loading, `qml-observer plugins list`); and
+  `qml_observer.reporting.history` (`RunHistory`/`HistoryReporter`/
+  `compare_runs`, `qml-observer history list/compare/export`) -- see
+  `docs/development/plugin_api.md` and
+  `docs/integrations/experiment_trackers.md`.
 - Milestone 15 (planned, pre-1.0 hardening -- see
   `future_milestones_plan.md`): public API freeze, performance/overhead
   benchmarking, a deliberate thread-safety decision, supply-chain

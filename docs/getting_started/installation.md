@@ -24,12 +24,17 @@ pip install -e .
 ## Optional framework integrations
 
 The core package (event schemas, statistics, detectors, diagnosis, actions,
-reporting, telemetry, CLI) has **no** PennyLane or Qiskit dependency --
-adapters are opt-in extras, installable directly from PyPI:
+reporting, telemetry, CLI) has **no** PennyLane, Qiskit, PyTorch, JAX,
+MLflow, or W&B dependency -- adapters and tracker integrations are all
+opt-in extras, installable directly from PyPI:
 
 ```bash
 pip install "qml-observer[pennylane]"   # PennyLane adapter
 pip install "qml-observer[qiskit]"      # Qiskit adapter (qiskit + qiskit-machine-learning)
+pip install "qml-observer[torch]"       # PyTorch adapter (Milestone 14)
+pip install "qml-observer[jax]"         # JAX adapter (Milestone 14)
+pip install "qml-observer[mlflow]"      # MLflow experiment-tracker integration (Milestone 14)
+pip install "qml-observer[wandb]"       # Weights & Biases experiment-tracker integration (Milestone 14)
 ```
 
 From a local checkout, use the editable-install form instead:
@@ -37,17 +42,27 @@ From a local checkout, use the editable-install form instead:
 ```bash
 pip install -e ".[pennylane]"
 pip install -e ".[qiskit]"
+pip install -e ".[torch]"
+pip install -e ".[jax]"
+pip install -e ".[mlflow]"
+pip install -e ".[wandb]"
 pip install -e ".[dev]"          # pytest, ruff, mypy, pre-commit -- for contributors
 ```
 
 Multiple extras can be combined:
-`pip install "qml-observer[pennylane,qiskit]"` (or
-`pip install -e ".[pennylane,qiskit,dev]"` from a checkout).
+`pip install "qml-observer[pennylane,qiskit,torch,jax]"` (or
+`pip install -e ".[pennylane,qiskit,torch,jax,mlflow,wandb,dev]"` from a
+checkout).
 
-If you import `qml_observer.adapters.pennylane` or
-`qml_observer.adapters.qiskit` without the corresponding extra installed,
-you'll get a clear `ImportError` naming the missing package rather than a
-confusing failure deep in adapter internals.
+If you import `qml_observer.adapters.pennylane`,
+`qml_observer.adapters.qiskit`, `qml_observer.adapters.pytorch`,
+`qml_observer.adapters.jax`, or the tracker modules under
+`qml_observer.integrations.trackers` without the corresponding extra
+installed, you'll get a clear `ImportError` naming the missing package
+rather than a confusing failure deep in adapter internals.
+`qml_observer.adapters.autograd.AutogradAdapter` (the shared,
+dependency-free base `PyTorchAdapter`/`JAXAdapter` build on) requires no
+extra at all.
 
 ## Optional dashboard (Milestone 11)
 

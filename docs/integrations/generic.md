@@ -46,3 +46,35 @@ If you'd rather skip the adapter object entirely, you can call
 `monitor.update(...)` directly with the same arguments; `GenericAdapter`
 exists only to give you a named, documented integration surface matching
 the project's adapter-layer vocabulary.
+
+## Using a classical autodiff framework instead? See `AutogradAdapter`
+
+`GenericAdapter` assumes `loss`/`gradients`/`parameters` are already plain
+`float`/`numpy.ndarray` values. If your custom loop instead computes them
+with a classical autodiff library -- PyTorch, JAX (which each also have
+their own dedicated adapters, see
+[`integrations/pytorch.md`](pytorch.md)/[`integrations/jax.md`](jax.md)),
+or a less common/hand-rolled autodiff stack with no dedicated adapter of
+its own -- pass those tensors through `AutogradAdapter`
+(`qml_observer.adapters.autograd`) instead. It duck-types its way through
+`.detach()`/`.cpu()`/`.numpy()`-style conversion (or `np.asarray()` as a
+fallback) so any framework's tensors reach `QMLMonitor.update()` safely,
+without a `torch.Tensor` with `requires_grad=True` (for example) raising
+when handed to `GenericAdapter` directly:
+
+```python
+from qml_observer import QMLMonitor
+from qml_observer.adapters.autograd import AutogradAdapter
+
+monitor = QMLMonitor()
+adapter = AutogradAdapter(monitor, optimizer_name="Adam", learning_rate=0.01)
+
+for step in range(200):
+    loss, grad_tensor, param_tensor = my_autodiff_training_step()
+    diagnosis = adapter.record_step(step, loss, grad_tensor, param_tensor)
+```
+
+`PyTorchAdapter` and `JAXAdapter` are themselves thin subclasses of
+`AutogradAdapter`, adding only framework-specific ergonomics (auto-collecting
+gradients from an attached `torch.nn.Module`, pytree-aware flattening for
+JAX) on top of this same conversion logic.

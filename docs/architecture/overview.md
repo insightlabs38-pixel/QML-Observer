@@ -55,7 +55,11 @@ custom research code through the same core.
    whatever `QMLMonitor` produces regardless of which adapter drove it,
    which is why the same reporting/CLI/benchmark infrastructure applies
    identically to PennyLane and Qiskit runs without any adapter-specific
-   code.
+   code. `qml_observer.reporting.history` (Milestone 14, Issue #103b)
+   adds a separate, one-line-per-*completed*-run ledger
+   (`RunHistory`/`HistoryReporter`) for comparing many runs against each
+   other, rather than inspecting one run's own JSONL log -- see
+   `run_history.md`.
 
 8. **CLI** (`qml_observer.cli`) -- `qml-observer inspect`/`report` reading
    JSONL logs produced by the reporting layer, plus

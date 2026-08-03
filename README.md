@@ -11,7 +11,7 @@ time, detects pathologies such as probable barren plateaus, stagnation, and
 noise-dominated optimization, and can log, warn, pause, or stop training
 before expensive quantum computation is wasted.
 
-> **Status:** v0.6.0 — public beta. Core schemas, monitoring engine,
+> **Status:** v0.7.0 — public beta. Core schemas, monitoring engine,
 > detectors, diagnosis engine, actions (including a real `PauseAction`),
 > both the PennyLane and Qiskit adapters, JSONL logging, run summaries,
 > compute-saved estimation, the CLI, the calibration benchmark suite,
@@ -23,20 +23,20 @@ before expensive quantum computation is wasted.
 > (`qml_observer.advanced`: QFIM estimation/conditioning,
 > parameter-redundancy detection, Hessian-vector products,
 > loss-landscape sampling, and qubit/depth gradient-variance scaling
-> analysis — see `docs/research/geometry.md`), and an opt-in recovery
+> analysis — see `docs/research/geometry.md`), an opt-in recovery
 > engine (`qml_observer.recovery`: ranked recovery strategies —
 > reinitialization, learning-rate/shot-budget adjustment, ansatz-depth
 > reduction, optimizer switching, natural gradient — plus recovery
 > evaluation and monitor resume after a pause; see
-> `docs/architecture/recovery.md`) are all shipped (Milestones 0–13). See
+> `docs/architecture/recovery.md`), and broader ecosystem support
+> (PyTorch/JAX hybrid-workflow adapters, a generic autograd adapter,
+> MLflow/W&B experiment-tracker integrations, a third-party detector
+> plugin API, and local run comparison/experiment management — see
+> `docs/development/plugin_api.md` and `docs/architecture/run_history.md`)
+> are all shipped (Milestones 0–14). See
 > `CHANGELOG.md` for the full release notes and `docs/roadmap.md` for
 > what's next. **The `0.x` API is not yet stable and may change without a
 > major-version bump**, per SemVer's `0.x` convention.
->
-> Note: the `"pause"` action-policy mode currently behaves identically to
-> `"warn"` — a distinct pause-and-preserve-state action (`PauseAction`)
-> is planned for Milestone 13 and is not yet implemented. See
-> `docs/architecture/actions.md`.
 
 ## Architecture
 

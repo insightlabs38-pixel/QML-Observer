@@ -8,6 +8,87 @@ it reaches `1.0.0`.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-02
+
+Milestone 14 (Ecosystem & Extensibility) -- **complete: Issues #98-#103,
+#103b** (per `future_milestones_plan.md`).
+
+### Added
+
+- `qml_observer.detectors.plugins` (Issue #103 -- "Third-party detector
+  API"): `discover_detector_plugins()`/`list_detector_plugins()`/
+  `load_detector_plugins()`, discovering `BaseDetector` subclasses
+  registered by other installed packages under the `qml_observer.detectors`
+  entry-point group. Fail-open at the whole-ecosystem-discovery level (one
+  broken/incompatible plugin is skipped with a logged warning, never
+  blocking the rest); `DetectorPluginError` for an explicitly-requested
+  plugin that doesn't exist or fails to construct. No sandboxing --
+  documented explicitly in `SECURITY.md`, `docs/development/data_handling.md`,
+  and `docs/development/adding_detectors.md`, none of which needed a
+  policy change, only an update from "planned" to "shipped." New
+  `qml-observer plugins list` CLI subcommand. New
+  `docs/development/detector_rfc_template.md` (the RFC template
+  `CONTRIBUTING.md` has referenced since Milestone 10) for proposing new
+  *built-in* detectors, distinct from this plugin mechanism.
+- `qml_observer.reporting.history` (Issue #103b -- "Run comparison /
+  experiment management", plan.md §25, not originally tracked as its own
+  issue anywhere -- see `future_milestones_plan.md`'s "Gaps &
+  recommendations" #3): `RunRecord`, `RunHistory` (an append-only local
+  JSONL ledger, one line per completed run, distinct from per-step JSONL
+  logging), `compare_runs()`/`format_comparison_table()`, and
+  `HistoryReporter` (a `RunReporter`-duck-typed wrapper auto-appending to
+  a `RunHistory` at `finalize()`, tagged with arbitrary run metadata --
+  e.g. ansatz name -- for later A/B comparison). CSV/JSON export.
+  Schema-versioned (`HISTORY_SCHEMA_VERSION`), following Issue #108's
+  precedent. New `qml-observer history {list,compare,export}` CLI
+  subcommands.
+- `docs/architecture/run_history.md` (Issue #103b) and a "Detector
+  plugins" section added to `docs/development/plugin_api.md` (Issue
+  #103, updating its earlier explicit "out of scope for this page" note
+  now that #103 has shipped).
+- `examples/generic/detector_plugin_demo.py` and
+  `examples/generic/run_history_demo.py`.
+
+- `qml_observer.adapters.autograd.AutogradAdapter` (Issue #100 --
+  "Generic autograd adapter"): a framework-neutral adapter for hybrid
+  loops computing `loss`/`gradients`/`parameters` with a classical
+  autodiff library instead of plain arrays. Duck-types
+  `.detach()`/`.cpu()`/`.numpy()`-style tensor conversion (falling back to
+  `np.asarray()`), usable standalone or as the shared base for
+  `PyTorchAdapter`/`JAXAdapter`. No third-party dependency of its own.
+- `qml_observer.adapters.pytorch.PyTorchAdapter` (Issue #98 -- "PyTorch
+  hybrid-workflow integration"): `attach()`/`detach()` a
+  `torch.nn.Module`/`torch.optim.Optimizer`; `record_step()`
+  auto-collects gradients/parameters from the attached module after
+  `loss.backward()` and reads optimizer name/learning rate off the
+  attached optimizer. Requires the new `torch` extra
+  (`qml-observer[torch]`).
+- `qml_observer.adapters.jax.JAXAdapter` (Issue #99 -- "JAX hybrid-workflow
+  integration"): `attach()`/`detach()` a parameter pytree;
+  `record_step()` flattens gradient/parameter pytrees via
+  `jax.tree_util.tree_leaves` into the 1-D array `QMLMonitor.update()`
+  expects, and counts parameters across the whole pytree. Requires the
+  new `jax` extra (`qml-observer[jax]`). Optimizer name/learning rate must
+  be supplied explicitly (no standard place to introspect them from
+  `optax` state).
+- `qml_observer.integrations.trackers` (Issue #101 -- "Experiment-tracker
+  integrations"): `BaseExperimentTracker` (dependency-free
+  `RunReporter`-duck-type skeleton, fail-open per addendum §1) plus
+  `MLflowTracker` and `WandbTracker`, both attaching to an *existing*
+  MLflow/W&B run rather than starting their own. Requires the new
+  `mlflow`/`wandb` extras respectively.
+- `docs/development/plugin_api.md` (Issue #102 -- "Plugin API
+  documentation"): guide for writing a new adapter (building on
+  `GenericAdapter`/`AutogradAdapter`, the optional-dependency-gating
+  pattern) or a new experiment-tracker reporter (building on
+  `BaseExperimentTracker`). Distinct from the not-yet-built third-party
+  *detector* plugin API (Issue #103).
+- `docs/integrations/pytorch.md`, `docs/integrations/jax.md`,
+  `docs/integrations/experiment_trackers.md`, and a new section in
+  `docs/integrations/generic.md` pointing to `AutogradAdapter`.
+- New `pyproject.toml` optional-dependency extras: `torch`, `jax`,
+  `mlflow`, `wandb`.
+
 ## [0.6.0] - 2026-08-01
 
 Milestone 13 (Recovery Engine) -- **complete: Issues #90b, #90-#97**

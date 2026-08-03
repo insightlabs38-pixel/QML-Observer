@@ -13,10 +13,10 @@ it stays in sync by pointing here:
   and 3.13 -- see `CONTRIBUTING.md#python-version-support-policy`.
 - **License rationale (MPL-2.0)**: see `CONTRIBUTING.md#why-mpl-20`.
 - **Adding a new detector**: see `adding_detectors.md` on this page.
-- **Proposing a new built-in detector**: goes through an RFC (template to
-  be added alongside Milestone 14's third-party detector API,
-  `docs/development/detector_rfc_template.md`); community plugin detectors
-  do not require this process.
+- **Proposing a new built-in detector**: goes through an RFC
+  (`docs/development/detector_rfc_template.md`); community plugin
+  detectors, discovered via `qml_observer.detectors.plugins` (Milestone
+  14, Issue #103), do not require this process.
 
 ## Code of conduct
 

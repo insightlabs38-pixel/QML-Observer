@@ -24,10 +24,14 @@ unless a telemetry endpoint is explicitly configured (there is no bundled
 backend). See `docs/development/telemetry.md` for the exact schema and
 what is/is not collected.
 
-## Third-party detector plugins (future)
+## Third-party detector plugins
 
-A community detector plugin API is planned for Milestone 14. Plugin
-detectors will run in-process with no sandboxing -- a malicious plugin
-would have full code execution in your training process. This is an
-accepted tradeoff for a research tool, but it will be documented
-explicitly (not silently assumed) once the plugin API ships.
+A community detector plugin API shipped in Milestone 14
+(`qml_observer.detectors.plugins`, Issue #103). Plugin detectors,
+discovered via the `qml_observer.detectors` entry-point group, run
+in-process with no sandboxing -- a malicious or buggy plugin would have
+full code execution in your training process. This is an accepted
+tradeoff for a research tool. `list_detector_plugins()` inspects what's
+registered without importing/executing anything;
+`discover_detector_plugins()`/`load_detector_plugins()` do execute each
+plugin's code. See `SECURITY.md` and `docs/development/plugin_api.md`.

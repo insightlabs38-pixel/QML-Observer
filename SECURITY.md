@@ -24,10 +24,17 @@ We aim to acknowledge reports within a few business days.
 - QML Observer is a local, non-invasive monitoring library. By default it
   writes nothing off-machine; see `docs/development/data_handling.md` for
   the current data-handling model.
-- A future third-party detector plugin API (Milestone 14, not yet
-  shipped) will run plugins in-process with no sandboxing. This is a
-  known, accepted, and explicitly documented tradeoff for a research
-  tool, not a vulnerability to report.
+- A third-party detector plugin API (Milestone 14, Issue #103,
+  `qml_observer.detectors.plugins`) discovers and imports detectors
+  registered by other installed packages under the `qml_observer.detectors`
+  entry-point group. Plugins run **in-process with no sandboxing** -- a
+  malicious or buggy plugin has full code execution in your training
+  process. This is a known, accepted, and explicitly documented tradeoff
+  for a research tool, not a vulnerability to report. `list_detector_plugins()`
+  lets you see what's registered without importing/executing anything;
+  `discover_detector_plugins()`/`load_detector_plugins()` do execute each
+  plugin's module-level code. Only install/enable detector plugins from
+  sources you trust, the same as any other Python package.
 - `WebhookAction` (Milestone 10) POSTs to a user-supplied URL. By default
   it refuses obviously internal-looking targets (`localhost`, loopback,
   link-local, and private-range addresses) as a minimal SSRF safeguard;

@@ -84,7 +84,14 @@ evidence list independently.
 
 ## Third-party / plugin detectors
 
-A documented plugin API for out-of-tree detectors is Milestone 14 work
-(not yet implemented) -- see `docs/roadmap.md`. Until then, the pattern
-above works for any detector living in your own codebase; just import it
-and pass it to `QMLMonitor(detectors=[...])` like a built-in one.
+A documented plugin API for out-of-tree detectors shipped in Milestone 14
+(`qml_observer.detectors.plugins`, Issue #103): a third-party package
+registers a `BaseDetector` subclass under the `qml_observer.detectors`
+entry-point group, and `load_detector_plugins()`/`discover_detector_plugins()`
+find and instantiate it -- no different from importing it and passing it
+to `QMLMonitor(detectors=[...])` yourself, just discoverable without
+knowing the exact import path. See `docs/development/plugin_api.md` for
+the full guide, and `SECURITY.md` for the (no-sandboxing) security
+posture. The pattern above (implementing `BaseDetector` directly) works
+identically either way -- registering an entry point is optional
+packaging sugar on top of it, not a different detector interface.
